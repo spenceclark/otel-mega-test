@@ -65,9 +65,11 @@ click returns `"trace_id": "665bfde18a480568fbf34769b00fd9bc"`, the trace id the
 
 DevTools also shows something we didn't expect. The redacted `Cookie` row is a session cookie from a *different*
 local app on `127.0.0.1:3080`. Browsers scope cookies by host, not port, so it rides along to the demo. It never
-reaches telemetry: no instrumentation here records request headers, and the canary checks found nothing. But
-the gateway currently strips `Cookie` only on the telemetry routes and forwards it to `/api`. That is exactly
-the kind of accidental data flow this project is meant to make visible.
+reached telemetry: no instrumentation here records request headers, and the canary checks found nothing. But
+the gateway originally stripped `Cookie` only on the telemetry routes and forwarded it to `/api`, the kind of
+accidental data flow this project is meant to make visible. The fix was two lines moved up a level: the gateway
+now drops `Cookie` and `Authorization` for every proxied route. Checked against echo upstreams, the API now
+receives `traceparent` but no `cookie` or `authorization`, and the baseline trace contract still passes.
 
 The response, verbatim:
 
