@@ -65,7 +65,8 @@ From a clean clone on Windows via `demo.ps1`:
 
 Live mode (`claude-haiku-5-5` in both agents) + Logfire fan-out: one run, all 16 checks pass, Collector reported no
 export errors ([live run record](docs/compatibility.md#live-run-record-15-oct-2026-commit-3fd6e6a--live-fixes)).
-Not verified: Logfire **UI rendering** (not inspected yet). The GitHub workflows have not run yet. See
+The same trace was inspected in Logfire: one waterfall across all four services, span links shown, both agents
+detected ([Logfire observations](docs/compatibility.md#logfire-observations-same-trace-inspected-in-the-logfire-ui-eu-region)). The GitHub workflows have not run yet. See
 [docs/compatibility.md](docs/compatibility.md) for the full ledger.
 
 ## Modes

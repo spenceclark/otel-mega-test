@@ -82,7 +82,7 @@ Recompute with `sha256sum <file>` when a dependency PR lands and re-run the full
 | Browser fetch span timing | instrumentation-fetch 0.223.0 ends the CLIENT span ~300 ms after the response (`OBSERVER_WAIT_TIME_MS`, waiting for resource timing). A flush right after rendering would lose it; `flushTelemetry()` waits for open spans (≤2 s) before force-flushing. |
 | OTLP endpoint (.NET 1.19) | Base `OTEL_EXPORTER_OTLP_ENDPOINT` → `/v1/traces` and `/v1/logs` appended. A base that already ends in `/v1/traces` keeps traces but sends logs to `/v1/traces/v1/logs`. Signal-specific `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is ignored by `AddOtlpExporter()` (only `UseOtlpExporter()` reads it). An **empty** base endpoint silently falls back to `http://localhost:4318`. .NET does not read `OTEL_PROPAGATORS`; its default is W3C trace context. |
 | OTLP endpoint (Python 1.45) | Base endpoint → `/v1/traces`, `/v1/logs` appended; honours `OTEL_PROPAGATORS=tracecontext` (verified: no baggage in headers or `_meta`). |
-| Logfire export | Executed 15 Oct 2026 (`up --mode live --logfire`, EU region): the Collector fanned out to the evidence files and `otlphttp/logfire` with **zero exporter errors** in its log (a bad token or region surfaces there as 401/403). **UI rendering not inspected yet** (Logfire login needed in the browser), so no claims about panels, service grouping or link visibility. |
+| Logfire export and rendering | Executed 15 Oct 2026 (`up --mode live --logfire`, EU region): zero Collector exporter errors, and the trace was inspected in the Logfire UI — see *Logfire observations* below. |
 | Live models | Executed once (see *Live run record* below): Anthropic `claude-haiku-5-5` in both agents, tool invoked as required, full trace contract passes. |
 
 ## Live run record (15 Oct 2026, commit `3fd6e6a` + live fixes)
@@ -115,6 +115,42 @@ Observed only in live mode:
 - **Finish-reason vocabulary differs:** Pydantic AI `['tool_call']` (array) vs M.E.AI `"[\"tool_calls\"]"` (JSON string).
 - **Compose gotcha fixed:** `ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}` handed the API an empty string, which the
   Python client takes as a URL. Compose now passes it through only when set, and the API treats empty as unset.
+
+### Logfire observations (same trace, inspected in the Logfire UI, EU region)
+
+![Logfire waterfall of the live trace](article/img/logfire-live-waterfall.png)
+
+- **One waterfall, four services.** Logfire draws the whole submission as a single tree rooted at `ui.ask`; every
+  row carries its resource service (`trace-demo-web` / `-api` / `-worker` / `-shipping`). Facets for the trace:
+  23 spans, 12 logs, 10 events (worker 21 records, api 11, web 11, shipping 2). Log records and span events
+  (fetch resource timing, `lookup_availability.join`, Npgsql `received-first-response`) appear inline under the
+  span that was active when they were emitted.
+- **SQL/HTTP overlap.** At the full-trace scale (9.5 s) the two leaf bars are a few pixels wide, so the overlap is
+  not something you can *see* in the waterfall. Logfire's stored timestamps (span Raw Data) match the raw OTLP
+  exactly: `execute_tool lookup_availability` 10:01:32.308485–.849696, `GET` .333986–.838330, `postgresql`
+  .431996–.758557 → **326.6 ms overlap**, tool ends after both. The SQL span starts 98 ms after the HTTP span
+  because the pooled connection's first `CONNECT demo` (84 ms) runs first on that branch.
+- **Agent and tool names.** Python spans are displayed with Pydantic AI's message text rather than the OTLP span
+  name: `request-router run` (span `invoke_agent request-router`) and `running tool: build_availability_report`
+  (span `execute_tool build_availability_report`). .NET spans keep their raw names
+  (`invoke_agent availability-analyst(availability-analyst)`, `execute_tool lookup_availability`). The **Agents**
+  page detects both agents from the GenAI attributes — `request-router` and `availability-analyst`, both
+  `claude-haiku-5-5`, 1 run each — but prices only the Python one (`<$0.01`); the .NET agent shows **Unpriced**.
+  The agent-run panel shows messages as **Not captured**, consistent with content capture being off.
+- **Links are visible.** The .NET `tools/call build_availability_report` row shows a link icon, and its Details tab
+  lists *Related spans → Links to → `POST /mcp/`* (clickable). In this baseline the link target is in the same
+  trace; the cross-trace case (`headers-removed`) was not inspected in the UI.
+- **Token roll-ups double-count.** The Σ badge on `ui.ask` reads **5,892 in / 735 out**, while the four model calls
+  total 4,558 / 641. The `tools/call` subtree reads 4,274 / 427 = MAF's aggregate on `invoke_agent` (2,940 / 333)
+  plus its first `chat` span (1,334 / 94) — the `gen_ai.usage.*` key collision above, visible in the UI.
+- **.NET log bodies show templates.** Worker records render as `lookup_availability branch completed {demo.branch}
+  {demo.duration_ms}` and `{EndpointName} method '{Method}' request handler called.`: the .NET OTLP log exporter
+  sends the message *template* as the body (values are in attributes). Python records show formatted text.
+  `IncludeFormattedMessage = true` on the .NET logging options would change that; not changed.
+- **Privacy in the UI.** No prompt, completion or tool argument/result text appears anywhere in the trace. MCP
+  session ids are present as span attributes (`mcp.session.id`), so the saved screenshots leave out attribute panes.
+
+![Logfire Agents page](article/img/logfire-agents.png)
 
 ## Graph profile accepted
 

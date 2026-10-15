@@ -1,8 +1,8 @@
 # One Click, Two Agents, Three Runtimes: Can OpenTelemetry Keep the Thread?
 
 *Draft. Every number below comes from raw OTLP evidence captured by the repository's Collector on the pinned stack
-in [docs/compatibility.md](../compatibility.md). Logfire screenshots are not included yet: export to Logfire ran,
-but the UI has not been inspected, so nothing here claims how Logfire renders these traces.*
+in [docs/compatibility.md](../compatibility.md). Logfire screenshots come from the one live run and are cropped to
+exclude account details and MCP session ids.*
 
 ## 1. The wager
 
@@ -135,8 +135,21 @@ trace of 23 spans, ≈9.5 s end to end, four model calls (≈4.6k input / 0.6k o
 fanned out to Logfire without export errors. Live mode also exposed two things scripted mode cannot: the
 Anthropic Python SDK now traces itself by default, adding a second model span under Pydantic AI's, and MAF reports
 the agent's *aggregate* usage under the same `gen_ai.usage.*` keys as its model spans — sum every span and you
-double-count. What we did not verify: how Logfire renders these traces and links (not inspected yet),
-cross-origin CORS behaviour, sampling, and clock skew beyond "never compare timestamps across hosts". Browser export is best effort: the fetch
+double-count.
+
+In Logfire the live run is one waterfall across all four services, with the .NET MCP span's link to its HTTP
+request listed under *Related spans*, and both agents picked up on the Agents page:
+
+![The live trace in Logfire](img/logfire-live-waterfall.png)
+
+Three things the UI adds that raw OTLP does not show: Pydantic AI spans are displayed under friendlier names
+(`request-router run`, `running tool: …`) while .NET spans keep their OTLP names; the root's token badge reads
+5,892 in / 735 out for model calls that total 4,558 / 641 — the MAF usage-key collision, now on screen; and .NET
+log lines appear as unformatted message templates. The SQL/HTTP overlap is real in Logfire's stored timestamps
+(326.6 ms, identical to the Collector file) but too small to see at the scale of a 9.5-second trace.
+
+What we did not verify: cross-origin CORS behaviour, sampling, and clock skew beyond "never compare timestamps
+across hosts". Browser export is best effort: the fetch
 instrumentation ends its span about 300 ms after the response, so flushing right after rendering silently drops
 it — the app waits for open spans before flushing. In the browser, ambient context did **not** survive a single
 `await` in any run; the app re-enters context explicitly.
