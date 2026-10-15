@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "experiment": "privacy",
+  "git_sha": "5c38f61",
+  "mode": "scripted",
+  "recorded_at": "20261015T003827Z",
+  "hypothesis": "Default telemetry carries no prompt, completion, tool result or header content; enabling content capture leaks canaries.",
+  "fault": "DEMO_CONTENT_CAPTURE=true enables GenAI message/tool content capture in both frameworks.",
+  "fix": "DEMO_CONTENT_CAPTURE=false (default).",
+  "expected_graph": "Unchanged graph; canary strings appear in span attributes/events.",
+  "broken": {
+    "run_id": "4144b580bd2d484aabf5ee3172194545",
+    "api_trace_id": "fa82eca27659f59727a384a7bf7acb7a",
+    "outcome": "ok",
+    "expectations_met": true,
+    "checks": {
+      "browser-root": {
+        "ok": true,
+        "detail": "ui.ask f55a5531420ea5b4 trace fa82eca27659f59727a384a7bf7acb7a parent=none"
+      },
+      "required-spans": {
+        "ok": true,
+        "detail": "all present"
+      },
+      "unique-span-ids": {
+        "ok": true,
+        "detail": "19 spans in trace"
+      },
+      "parents-resolve": {
+        "ok": true,
+        "detail": "ok"
+      },
+      "browser-client->api-server": {
+        "ok": true,
+        "detail": "api server parent=cef8f685b73ba756 web client=cef8f685b73ba756"
+      },
+      "api-http-client->worker-http-server": {
+        "ok": true,
+        "detail": "worker HTTP server trace-demo-worker:'POST /mcp/'(05375527ec377de2) in trace fa82eca27659f59727a384a7bf7acb7a; parent=trace-demo-api:'POST'(9fdeb960d16f0040)"
+      },
+      "mcp-message-parent": {
+        "ok": true,
+        "detail": "MCP server parent=trace-demo-api:'MCP send tools/call build_availability_report'(20ffee68185eaa55) expected=trace-demo-api:'MCP send tools/call build_availability_report'(20ffee68185eaa55)"
+      },
+      "mcp-http-link": {
+        "ok": true,
+        "detail": "MCP server links=[('fa82eca27659f59727a384a7bf7acb7a', '05375527ec377de2')] -> trace-demo-worker:'POST /mcp/'(05375527ec377de2)"
+      },
+      "agent-ancestry": {
+        "ok": true,
+        "detail": "router>trace-demo-api:'MCP send tools/call build_availability_report'(20ffee68185eaa55): True; MCP server>analyst: True; analyst>tool: True"
+      },
+      "io-under-tool": {
+        "ok": true,
+        "detail": "tool>db: True; tool>shipping: True"
+      },
+      "io-overlap": {
+        "ok": true,
+        "detail": "overlap=319.1ms tool_ends_after_both=True db=319.1ms http=513.1ms sum=832.2ms tool=550.4ms"
+      },
+      "shipping-server-hop": {
+        "ok": true,
+        "detail": "shipping server parent=8e843d9f2e5fad85 expected=8e843d9f2e5fad85"
+      },
+      "logs-correlated": {
+        "ok": true,
+        "detail": "trace-demo-web=1, trace-demo-api=2, trace-demo-worker=2, trace-demo-shipping=1 log records attached to spans in the trace"
+      },
+      "privacy-canaries": {
+        "ok": false,
+        "detail": "LEAKED: ['CANARY-ANALYST-0f2b', 'CANARY-COMPLETION-3d7a', 'CANARY-PROMPT-91c4', 'CANARY-SHIPREF-5b1e']"
+      },
+      "no-export-recursion": {
+        "ok": true,
+        "detail": "0 telemetry-export spans in trace"
+      },
+      "outcome-ok": {
+        "ok": true,
+        "detail": "api demo.outcome=ok"
+      }
+    }
+  },
+  "fixed": {
+    "run_id": "0d4ca774bbcb42bd9ae8ab66f7b99830",
+    "api_trace_id": "8f6c59e4fcbb980854ad315ec5957bb3",
+    "outcome": "ok",
+    "expectations_met": true,
+    "checks": {
+      "browser-root": {
+        "ok": true,
+        "detail": "ui.ask da92025681ea1346 trace 8f6c59e4fcbb980854ad315ec5957bb3 parent=none"
+      },
+      "required-spans": {
+        "ok": true,
+        "detail": "all present"
+      },
+      "unique-span-ids": {
+        "ok": true,
+        "detail": "19 spans in trace"
+      },
+      "parents-resolve": {
+        "ok": true,
+        "detail": "ok"
+      },
+      "browser-client->api-server": {
+        "ok": true,
+        "detail": "api server parent=bdf24aabe7699293 web client=bdf24aabe7699293"
+      },
+      "api-http-client->worker-http-server": {
+        "ok": true,
+        "detail": "worker HTTP server trace-demo-worker:'POST /mcp/'(ab95ae8dad4799dc) in trace 8f6c59e4fcbb980854ad315ec5957bb3; parent=trace-demo-api:'POST'(07dca115892901cb)"
+      },
+      "mcp-message-parent": {
+        "ok": true,
+        "detail": "MCP server parent=trace-demo-api:'MCP send tools/call build_availability_report'(b3a12f954bc465ca) expected=trace-demo-api:'MCP send tools/call build_availability_report'(b3a12f954bc465ca)"
+      },
+      "mcp-http-link": {
+        "ok": true,
+        "detail": "MCP server links=[('8f6c59e4fcbb980854ad315ec5957bb3', 'ab95ae8dad4799dc')] -> trace-demo-worker:'POST /mcp/'(ab95ae8dad4799dc)"
+      },
+      "agent-ancestry": {
+        "ok": true,
+        "detail": "router>trace-demo-api:'MCP send tools/call build_availability_report'(b3a12f954bc465ca): True; MCP server>analyst: True; analyst>tool: True"
+      },
+      "io-under-tool": {
+        "ok": true,
+        "detail": "tool>db: True; tool>shipping: True"
+      },
+      "io-overlap": {
+        "ok": true,
+        "detail": "overlap=320.1ms tool_ends_after_both=True db=320.1ms http=512.2ms sum=832.3ms tool=549.8ms"
+      },
+      "shipping-server-hop": {
+        "ok": true,
+        "detail": "shipping server parent=e2f1f9b701e196ad expected=e2f1f9b701e196ad"
+      },
+      "logs-correlated": {
+        "ok": true,
+        "detail": "trace-demo-web=1, trace-demo-api=2, trace-demo-worker=8, trace-demo-shipping=1 log records attached to spans in the trace"
+      },
+      "privacy-canaries": {
+        "ok": true,
+        "detail": "no canaries in spans/logs of the submission"
+      },
+      "no-export-recursion": {
+        "ok": true,
+        "detail": "0 telemetry-export spans in trace"
+      },
+      "outcome-ok": {
+        "ok": true,
+        "detail": "api demo.outcome=ok"
+      }
+    }
+  },
+  "verdict": "confirmed"
+}

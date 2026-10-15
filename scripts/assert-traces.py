@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.14"
+# dependencies = []
+# ///
 """Trace-contract assertions over the Collector's OTLP JSON-lines evidence (stdlib only).
 
 Reads `evidence/otel/traces.jsonl` + `logs.jsonl` (collector-contrib `file` exporter, `format: json`:
@@ -200,6 +204,20 @@ def is_shipping_client(s: Span) -> bool:
     return s.service == WORKER and s.kind == CLIENT and "/quotes/" in str(s.attrs.get("url.full", ""))
 
 
+# Required categories in the submission trace, by the selectors above.
+REQUIRED: dict[str, Callable[[Span], bool]] = {
+    "web CLIENT POST /api/ask": lambda s: s.service == WEB and s.kind == CLIENT,
+    "api SERVER /api/ask": lambda s: s.service == API and s.kind == SERVER and s.attrs.get("http.route") == "/api/ask",
+    "api invoke_agent request-router": lambda s: s.service == API and is_agent(s, "request-router"),
+    "api MCP tools/call CLIENT": is_mcp_call_client,
+    "worker MCP tools/call SERVER": is_mcp_call_server,
+    "worker invoke_agent availability-analyst": lambda s: s.service == WORKER and is_agent(s, "availability-analyst"),
+    "worker local tool lookup_availability": is_local_tool,
+    "worker db CLIENT (postgresql)": is_db_client,
+    "worker HTTP CLIENT (shipping)": is_shipping_client,
+}
+
+
 def _first(items: list[Span]) -> Span | None:
     return items[0] if items else None
 
@@ -254,7 +272,7 @@ def check_run(run: dict[str, Any], spans: list[Span], logs: list[Log], profile: 
     missing = [k for k, v in required.items() if v is None]
     detail = "all present" if not missing else "missing from submission trace: " + "; ".join(missing)
     if missing:
-        detail += diagnose_missing(t, spans, run)
+        detail += diagnose_missing(t, spans, run, missing)
     add("required-spans", not missing, detail)
 
     ids = [s.span_id for s in t.spans]
@@ -341,42 +359,44 @@ def check_run(run: dict[str, Any], spans: list[Span], logs: list[Log], profile: 
 
     outcome = api_server.attrs.get("demo.outcome") if api_server else None
     if profile == "logical-error":
+        # The JSON-RPC exchange succeeded (HTTP 200, `MCP send` may stay UNSET); the *logical* tool call failed.
+        api_tool = next(
+            (a for a in ([mcp_client] if mcp_client else []) + (t.ancestors(mcp_client) if mcp_client else []) if a.name.startswith("execute_tool")), None
+        )
         add(
             "logical-error-mapped",
             bool(
                 outcome == "tool_error"
-                and mcp_client
-                and mcp_client.status == STATUS_ERROR
+                and api_tool
+                and api_tool.status == STATUS_ERROR
+                and mcp_server
+                and mcp_server.status == STATUS_ERROR
                 and http_client
                 and http_client.attrs.get("http.response.status_code") == 200
                 and http_client.status != STATUS_ERROR
             ),
-            f"api outcome={outcome}; MCP client status={mcp_client.status if mcp_client else None}; "
-            f"HTTP client status_code={http_client.attrs.get('http.response.status_code') if http_client else None} "
-            f"status={http_client.status if http_client else None}; MCP server status={mcp_server.status if mcp_server else None}",
+            f"api outcome={outcome}; api {_desc(api_tool)} status={api_tool.status if api_tool else None}; "
+            f"MCP client status={mcp_client.status if mcp_client else None}; MCP server status={mcp_server.status if mcp_server else None} "
+            f"error.type={mcp_server.attrs.get('error.type') if mcp_server else None}; HTTP client status_code="
+            f"{http_client.attrs.get('http.response.status_code') if http_client else None} status={http_client.status if http_client else None}",
         )
     else:
         add("outcome-ok", outcome == "ok", f"api demo.outcome={outcome}")
     return checks, t
 
 
-def diagnose_missing(t: Trace, spans: list[Span], run: dict[str, Any]) -> str:
-    """Explain where missing worker spans went: another trace (propagation) or nowhere (export)."""
+def diagnose_missing(t: Trace, spans: list[Span], run: dict[str, Any], missing: list[str]) -> str:
+    """For each missing category: found in another trace during the run (propagation loss) or nowhere (export loss)."""
     try:
         lo = int(datetime.fromisoformat(run["started_at"]).timestamp() * 1e9) - 5_000_000_000
         hi = int(datetime.fromisoformat(run["finished_at"]).timestamp() * 1e9) + 5_000_000_000
     except KeyError, ValueError:
         return ""
-    elsewhere = sorted(
-        {
-            (s.service, s.trace_id)
-            for s in spans
-            if s.trace_id != t.trace_id and lo <= s.start <= hi and s.service in (WORKER, API, SHIPPING) and not s.attrs.get("demo.run_id")
-        }
-    )
-    if not elsewhere:
-        return " | no candidate spans in other traces near this run (export loss or not emitted)"
-    return " | candidate spans in OTHER traces during the run (propagation loss): " + ", ".join(f"{svc}@{tid[:8]}" for svc, tid in elsewhere[:6])
+    notes: list[str] = []
+    for name in missing:
+        others = sorted({s.trace_id[:8] for s in spans if s.trace_id != t.trace_id and lo <= s.start <= hi and REQUIRED[name](s)})
+        notes.append(f"{name} -> in other trace(s) {others} (PROPAGATION loss)" if others else f"{name} -> not exported (EXPORT loss or not emitted)")
+    return " | " + "; ".join(notes)
 
 
 def evaluate(manifest: dict[str, Any], evidence: Path, profile: str, timeout: float) -> list[tuple[dict[str, Any], list[Check]]]:

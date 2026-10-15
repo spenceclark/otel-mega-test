@@ -2,8 +2,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0.302-noble@sha256:72dd743782f2ae7e5476fd64f6a460045e3998dc862218b80e6944cba79a01b0 AS build
 WORKDIR /src
 COPY .editorconfig global.json Directory.Build.props Directory.Packages.props ./
-COPY apps/worker/Worker.csproj apps/worker/
-RUN dotnet restore apps/worker/Worker.csproj
+COPY apps/worker/Worker.csproj apps/worker/packages.lock.json apps/worker/
+RUN dotnet restore apps/worker/Worker.csproj --locked-mode
 COPY apps/worker/ apps/worker/
 RUN dotnet publish apps/worker/Worker.csproj -c Release --no-restore -o /app
 

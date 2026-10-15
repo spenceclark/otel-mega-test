@@ -1,0 +1,1575 @@
+{
+ "resourceSpans": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "trace-demo-web"
+      }
+     },
+     {
+      "key": "service.version",
+      "value": {
+       "stringValue": "ef0a4d1"
+      }
+     },
+     {
+      "key": "service.namespace",
+      "value": {
+       "stringValue": "trace-continuity-demo"
+      }
+     },
+     {
+      "key": "deployment.environment.name",
+      "value": {
+       "stringValue": "local"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "trace-demo-web",
+      "version": "ef0a4d1"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "9134158521c18876",
+       "flags": 257,
+       "name": "ui.ask",
+       "kind": 1,
+       "startTimeUnixNano": "1792024315951000000",
+       "endTimeUnixNano": "1792024316762400000",
+       "attributes": [
+        {
+         "key": "demo.scenario",
+         "value": {
+          "stringValue": "baseline"
+         }
+        },
+        {
+         "key": "demo.mode",
+         "value": {
+          "stringValue": "scripted"
+         }
+        },
+        {
+         "key": "demo.context_after_await",
+         "value": {
+          "boolValue": false
+         }
+        },
+        {
+         "key": "demo.outcome",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "demo.run_id",
+         "value": {
+          "stringValue": "ca2797541c034bdc9308f066e78456a7"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "@opentelemetry/instrumentation-fetch",
+      "version": "0.223.0"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "02f1929985629639",
+       "parentSpanId": "9134158521c18876",
+       "flags": 257,
+       "name": "POST",
+       "kind": 3,
+       "startTimeUnixNano": "1792024315951000000",
+       "endTimeUnixNano": "1792024316761000000",
+       "attributes": [
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "POST"
+         }
+        },
+        {
+         "key": "url.full",
+         "value": {
+          "stringValue": "http://web:8080/api/ask"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        },
+        {
+         "key": "server.address",
+         "value": {
+          "stringValue": "web"
+         }
+        },
+        {
+         "key": "server.port",
+         "value": {
+          "intValue": "8080"
+         }
+        }
+       ],
+       "events": [
+        {
+         "timeUnixNano": "1792024315952000098",
+         "name": "fetchStart"
+        },
+        {
+         "timeUnixNano": "1792024315952000098",
+         "name": "domainLookupStart"
+        },
+        {
+         "timeUnixNano": "1792024315952000098",
+         "name": "domainLookupEnd"
+        },
+        {
+         "timeUnixNano": "1792024315952000098",
+         "name": "connectStart"
+        },
+        {
+         "timeUnixNano": "1792024315952000098",
+         "name": "connectEnd"
+        },
+        {
+         "timeUnixNano": "1792024315952500098",
+         "name": "requestStart"
+        },
+        {
+         "timeUnixNano": "1792024316758700098",
+         "name": "responseStart"
+        },
+        {
+         "timeUnixNano": "1792024316758900098",
+         "name": "responseEnd"
+        }
+       ],
+       "status": {}
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "trace-demo-worker"
+      }
+     },
+     {
+      "key": "service.namespace",
+      "value": {
+       "stringValue": "trace-continuity-demo"
+      }
+     },
+     {
+      "key": "deployment.environment.name",
+      "value": {
+       "stringValue": "local"
+      }
+     },
+     {
+      "key": "service.version",
+      "value": {
+       "stringValue": "ef0a4d1"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "dotnet"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.19.1"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "Experimental.Microsoft.Extensions.AI"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "c4509b71a30b6b25",
+       "parentSpanId": "294ca39400b6b896",
+       "flags": 257,
+       "name": "chat scripted-analyst",
+       "kind": 3,
+       "startTimeUnixNano": "1792024316121588100",
+       "endTimeUnixNano": "1792024316126092300",
+       "attributes": [
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "chat"
+         }
+        },
+        {
+         "key": "gen_ai.request.model",
+         "value": {
+          "stringValue": "scripted-analyst"
+         }
+        },
+        {
+         "key": "gen_ai.provider.name",
+         "value": {
+          "stringValue": "scripted"
+         }
+        },
+        {
+         "key": "gen_ai.request.max_tokens",
+         "value": {
+          "intValue": "512"
+         }
+        },
+        {
+         "key": "gen_ai.output.type",
+         "value": {
+          "stringValue": "json"
+         }
+        },
+        {
+         "key": "gen_ai.tool.definitions",
+         "value": {
+          "stringValue": "[\n  {\n    \"type\": \"function\",\n    \"name\": \"lookup_availability\"\n  }\n]"
+         }
+        },
+        {
+         "key": "gen_ai.response.finish_reasons",
+         "value": {
+          "stringValue": "[\"tool_calls\"]"
+         }
+        },
+        {
+         "key": "gen_ai.response.model",
+         "value": {
+          "stringValue": "scripted-analyst"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "a42292da1e102950",
+       "parentSpanId": "294ca39400b6b896",
+       "flags": 257,
+       "name": "chat scripted-analyst",
+       "kind": 3,
+       "startTimeUnixNano": "1792024316680875700",
+       "endTimeUnixNano": "1792024316683720800",
+       "attributes": [
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "chat"
+         }
+        },
+        {
+         "key": "gen_ai.request.model",
+         "value": {
+          "stringValue": "scripted-analyst"
+         }
+        },
+        {
+         "key": "gen_ai.provider.name",
+         "value": {
+          "stringValue": "scripted"
+         }
+        },
+        {
+         "key": "gen_ai.request.max_tokens",
+         "value": {
+          "intValue": "512"
+         }
+        },
+        {
+         "key": "gen_ai.output.type",
+         "value": {
+          "stringValue": "json"
+         }
+        },
+        {
+         "key": "gen_ai.tool.definitions",
+         "value": {
+          "stringValue": "[\n  {\n    \"type\": \"function\",\n    \"name\": \"lookup_availability\"\n  }\n]"
+         }
+        },
+        {
+         "key": "gen_ai.response.finish_reasons",
+         "value": {
+          "stringValue": "[\"stop\"]"
+         }
+        },
+        {
+         "key": "gen_ai.response.model",
+         "value": {
+          "stringValue": "scripted-analyst"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "Npgsql",
+      "version": "10.0.3+d3768398c17877b3a916c3c4d87e8e11698991fc"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "201b5ff30c58a01d",
+       "parentSpanId": "e7beb280b5da922c",
+       "flags": 257,
+       "name": "CONNECT demo",
+       "kind": 3,
+       "startTimeUnixNano": "1792024316146513700",
+       "endTimeUnixNano": "1792024316217398800",
+       "attributes": [
+        {
+         "key": "db.system.name",
+         "value": {
+          "stringValue": "postgresql"
+         }
+        },
+        {
+         "key": "db.npgsql.data_source",
+         "value": {
+          "stringValue": "Host=postgres;Port=5432;Database=demo;Username=demo_reader"
+         }
+        },
+        {
+         "key": "db.namespace",
+         "value": {
+          "stringValue": "demo"
+         }
+        },
+        {
+         "key": "server.address",
+         "value": {
+          "stringValue": "postgres"
+         }
+        },
+        {
+         "key": "db.npgsql.connection_id",
+         "value": {
+          "intValue": "12990"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "704b5ece05dd3500",
+       "parentSpanId": "e7beb280b5da922c",
+       "flags": 257,
+       "name": "postgresql",
+       "kind": 3,
+       "startTimeUnixNano": "1792024316242263100",
+       "endTimeUnixNano": "1792024316563058600",
+       "attributes": [
+        {
+         "key": "db.query.text",
+         "value": {
+          "stringValue": "WITH d AS MATERIALIZED (SELECT pg_sleep(@delay))\nSELECT s.product_code, s.quantity_on_hand, s.warehouse\nFROM stock s, d\nWHERE s.product_code = @product_code"
+         }
+        },
+        {
+         "key": "db.system.name",
+         "value": {
+          "stringValue": "postgresql"
+         }
+        },
+        {
+         "key": "db.namespace",
+         "value": {
+          "stringValue": "demo"
+         }
+        },
+        {
+         "key": "server.address",
+         "value": {
+          "stringValue": "postgres"
+         }
+        },
+        {
+         "key": "db.npgsql.data_source",
+         "value": {
+          "stringValue": "Host=postgres;Port=5432;Database=demo;Username=demo_reader"
+         }
+        },
+        {
+         "key": "db.npgsql.connection_id",
+         "value": {
+          "intValue": "12990"
+         }
+        }
+       ],
+       "events": [
+        {
+         "timeUnixNano": "1792024316551550200",
+         "name": "received-first-response"
+        }
+       ],
+       "status": {}
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "System.Net.Http"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "f17690817c3a421e",
+       "parentSpanId": "e7beb280b5da922c",
+       "flags": 257,
+       "name": "GET",
+       "kind": 3,
+       "startTimeUnixNano": "1792024316159083700",
+       "endTimeUnixNano": "1792024316669047200",
+       "attributes": [
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "server.address",
+         "value": {
+          "stringValue": "shipping"
+         }
+        },
+        {
+         "key": "server.port",
+         "value": {
+          "intValue": "8000"
+         }
+        },
+        {
+         "key": "url.full",
+         "value": {
+          "stringValue": "http://shipping:8000/quotes/DEMO-NORTH"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        },
+        {
+         "key": "network.protocol.version",
+         "value": {
+          "stringValue": "1.1"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "Experimental.Microsoft.Agents.AI"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "e7beb280b5da922c",
+       "parentSpanId": "294ca39400b6b896",
+       "flags": 257,
+       "name": "execute_tool lookup_availability",
+       "kind": 1,
+       "startTimeUnixNano": "1792024316132416300",
+       "endTimeUnixNano": "1792024316678879200",
+       "attributes": [
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "execute_tool"
+         }
+        },
+        {
+         "key": "gen_ai.tool.type",
+         "value": {
+          "stringValue": "function"
+         }
+        },
+        {
+         "key": "gen_ai.tool.call.id",
+         "value": {
+          "stringValue": "scripted-call-1"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "lookup_availability"
+         }
+        },
+        {
+         "key": "gen_ai.tool.description",
+         "value": {
+          "stringValue": "Look up stock on hand and a shipping quote for one demo product and destination zone."
+         }
+        }
+       ],
+       "events": [
+        {
+         "timeUnixNano": "1792024316674431200",
+         "name": "lookup_availability.join"
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "294ca39400b6b896",
+       "parentSpanId": "50efe9c7a982e6b5",
+       "flags": 257,
+       "name": "invoke_agent availability-analyst(availability-analyst)",
+       "kind": 3,
+       "startTimeUnixNano": "1792024316106884000",
+       "endTimeUnixNano": "1792024316688597400",
+       "attributes": [
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "invoke_agent"
+         }
+        },
+        {
+         "key": "gen_ai.request.model",
+         "value": {
+          "stringValue": "scripted-analyst"
+         }
+        },
+        {
+         "key": "gen_ai.provider.name",
+         "value": {
+          "stringValue": "scripted"
+         }
+        },
+        {
+         "key": "gen_ai.agent.id",
+         "value": {
+          "stringValue": "availability-analyst"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "availability-analyst"
+         }
+        },
+        {
+         "key": "gen_ai.response.finish_reasons",
+         "value": {
+          "stringValue": "[\"stop\"]"
+         }
+        },
+        {
+         "key": "gen_ai.response.model",
+         "value": {
+          "stringValue": "scripted-analyst"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "Experimental.ModelContextProtocol"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "50efe9c7a982e6b5",
+       "parentSpanId": "dfc492059c5b8c35",
+       "flags": 769,
+       "name": "tools/call build_availability_report",
+       "kind": 2,
+       "startTimeUnixNano": "1792024316003533800",
+       "endTimeUnixNano": "1792024316704207300",
+       "attributes": [
+        {
+         "key": "mcp.session.id",
+         "value": {
+          "stringValue": "83b7e85f380d40ee82434a08d995f843"
+         }
+        },
+        {
+         "key": "jsonrpc.request.id",
+         "value": {
+          "stringValue": "3"
+         }
+        },
+        {
+         "key": "demo.scenario",
+         "value": {
+          "stringValue": "baseline"
+         }
+        },
+        {
+         "key": "demo.mode",
+         "value": {
+          "stringValue": "scripted"
+         }
+        },
+        {
+         "key": "demo.outcome",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "mcp.method.name",
+         "value": {
+          "stringValue": "tools/call"
+         }
+        },
+        {
+         "key": "network.transport",
+         "value": {
+          "stringValue": "tcp"
+         }
+        },
+        {
+         "key": "network.protocol.name",
+         "value": {
+          "stringValue": "http"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "build_availability_report"
+         }
+        },
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "execute_tool"
+         }
+        }
+       ],
+       "links": [
+        {
+         "traceId": "622cf459124fbad4a0d2c60476265c7d",
+         "spanId": "3c29237c1bcf8ccc",
+         "flags": 257
+        }
+       ],
+       "status": {}
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "Microsoft.AspNetCore"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "3c29237c1bcf8ccc",
+       "parentSpanId": "bc89886eaf77322d",
+       "flags": 769,
+       "name": "POST /mcp/",
+       "kind": 2,
+       "startTimeUnixNano": "1792024316000015100",
+       "endTimeUnixNano": "1792024316704560000",
+       "attributes": [
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "POST"
+         }
+        },
+        {
+         "key": "server.address",
+         "value": {
+          "stringValue": "worker"
+         }
+        },
+        {
+         "key": "server.port",
+         "value": {
+          "intValue": "8080"
+         }
+        },
+        {
+         "key": "user_agent.original",
+         "value": {
+          "stringValue": "python-httpx2/2.13.1"
+         }
+        },
+        {
+         "key": "url.scheme",
+         "value": {
+          "stringValue": "http"
+         }
+        },
+        {
+         "key": "url.path",
+         "value": {
+          "stringValue": "/mcp"
+         }
+        },
+        {
+         "key": "network.protocol.version",
+         "value": {
+          "stringValue": "1.1"
+         }
+        },
+        {
+         "key": "http.route",
+         "value": {
+          "stringValue": "/mcp/"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    }
+   ],
+   "schemaUrl": "https://opentelemetry.io/schemas/1.44.0"
+  },
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "python"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.45.1"
+      }
+     },
+     {
+      "key": "service.instance.id",
+      "value": {
+       "stringValue": "02d71407-4035-4d28-ac4d-c32e9e8879e2"
+      }
+     },
+     {
+      "key": "service.namespace",
+      "value": {
+       "stringValue": "trace-continuity-demo"
+      }
+     },
+     {
+      "key": "deployment.environment.name",
+      "value": {
+       "stringValue": "local"
+      }
+     },
+     {
+      "key": "service.version",
+      "value": {
+       "stringValue": "ef0a4d1"
+      }
+     },
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "trace-demo-api"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "pydantic-ai",
+      "version": "2.56.0"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "373b3c642e390805",
+       "parentSpanId": "020589a0c8f1a69a",
+       "flags": 256,
+       "name": "chat scripted-router",
+       "kind": 3,
+       "startTimeUnixNano": "1792024315978979300",
+       "endTimeUnixNano": "1792024315993884351",
+       "attributes": [
+        {
+         "key": "gen_ai.provider.name",
+         "value": {
+          "stringValue": "function"
+         }
+        },
+        {
+         "key": "gen_ai.system",
+         "value": {
+          "stringValue": "function"
+         }
+        },
+        {
+         "key": "gen_ai.request.model",
+         "value": {
+          "stringValue": "scripted-router"
+         }
+        },
+        {
+         "key": "model_request_parameters",
+         "value": {
+          "stringValue": "{\"function_tools\":[{\"name\":\"build_availability_report\",\"parameters_json_schema\":{\"type\":\"object\",\"properties\":{\"product_code\":{\"description\":\"Seeded demo product code.\",\"type\":\"string\",\"enum\":[\"DEMO-LANTERN\",\"DEMO-KETTLE\",\"DEMO-TENT\"]},\"destination_zone\":{\"description\":\"Seeded demo destination zone.\",\"type\":\"string\",\"enum\":[\"DEMO-NORTH\",\"DEMO-SOUTH\",\"DEMO-EAST\"]}},\"required\":[\"product_code\",\"destination_zone\"]},\"description\":\"Build a stock and shipping availability report for one demo product and destination zone.\",\"outer_typed_dict_key\":null,\"strict\":null,\"sequential\":false,\"kind\":\"function\",\"metadata\":{\"meta\":null,\"annotations\":{\"title\":null,\"readOnlyHint\":true,\"destructiveHint\":null,\"idempotentHint\":true,\"openWorldHint\":false},\"task\":false},\"timeout\":null,\"defer_loading\":false,\"unless_native\":null,\"with_native\":null,\"tool_kind\":null,\"return_schema\":null,\"include_return_schema\":null,\"toolset_id\":null,\"capability_id\":null}],\"native_tools\":[],\"tool_visibility\":{\"build_availability_report\":\"visible\"},\"revealed_tool_names\":[],\"deferred_capability_ids\":[],\"output_mode\":\"text\",\"output_object\":null,\"output_tools\":[],\"prompted_output_template\":null,\"allow_text_output\":true,\"allow_image_output\":false,\"instruction_parts\":[{\"dynamic\":false,\"name\":null,\"id\":\"agent\",\"part_kind\":\"instruction\"}],\"thinking\":null,\"cache\":null}"
+         }
+        },
+        {
+         "key": "gen_ai.tool.definitions",
+         "value": {
+          "stringValue": "[{\"type\":\"function\",\"name\":\"build_availability_report\",\"description\":\"Build a stock and shipping availability report for one demo product and destination zone.\",\"parameters\":{\"type\":\"object\",\"properties\":{\"product_code\":{\"description\":\"Seeded demo product code.\",\"type\":\"string\",\"enum\":[\"DEMO-LANTERN\",\"DEMO-KETTLE\",\"DEMO-TENT\"]},\"destination_zone\":{\"description\":\"Seeded demo destination zone.\",\"type\":\"string\",\"enum\":[\"DEMO-NORTH\",\"DEMO-SOUTH\",\"DEMO-EAST\"]}},\"required\":[\"product_code\",\"destination_zone\"]}}]"
+         }
+        },
+        {
+         "key": "gen_ai.request.max_tokens",
+         "value": {
+          "intValue": "512"
+         }
+        },
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "chat"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "request-router"
+         }
+        },
+        {
+         "key": "gen_ai.agent.call.id",
+         "value": {
+          "stringValue": "01a13cf9-0847-7256-89f9-56d07a27c1aa"
+         }
+        },
+        {
+         "key": "gen_ai.conversation.id",
+         "value": {
+          "stringValue": "01a13cf9-0847-7256-89f9-56d1a84adbf4"
+         }
+        },
+        {
+         "key": "demo.model.synthetic",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "gen_ai.input.messages",
+         "value": {
+          "stringValue": "[{\"role\":\"user\",\"parts\":[{\"type\":\"text\"}]}]"
+         }
+        },
+        {
+         "key": "gen_ai.output.messages",
+         "value": {
+          "stringValue": "[{\"role\":\"assistant\",\"parts\":[{\"type\":\"tool_call\",\"id\":\"pyd_ai_86e7068f22d640dd83f69a03ccd97d23\",\"name\":\"build_availability_report\"}]}]"
+         }
+        },
+        {
+         "key": "logfire.json_schema",
+         "value": {
+          "stringValue": "{\"type\":\"object\",\"properties\":{\"gen_ai.input.messages\":{\"type\":\"array\"},\"gen_ai.output.messages\":{\"type\":\"array\"},\"model_request_parameters\":{\"type\":\"object\"}}}"
+         }
+        },
+        {
+         "key": "gen_ai.usage.input_tokens",
+         "value": {
+          "intValue": "62"
+         }
+        },
+        {
+         "key": "gen_ai.usage.output_tokens",
+         "value": {
+          "intValue": "7"
+         }
+        },
+        {
+         "key": "gen_ai.response.model",
+         "value": {
+          "stringValue": "scripted-router"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "452a381c5c0c3054",
+       "parentSpanId": "020589a0c8f1a69a",
+       "flags": 256,
+       "name": "execute_tool build_availability_report",
+       "kind": 1,
+       "startTimeUnixNano": "1792024315994762030",
+       "endTimeUnixNano": "1792024316755561622",
+       "attributes": [
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "execute_tool"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "build_availability_report"
+         }
+        },
+        {
+         "key": "gen_ai.tool.call.id",
+         "value": {
+          "stringValue": "pyd_ai_86e7068f22d640dd83f69a03ccd97d23"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "request-router"
+         }
+        },
+        {
+         "key": "gen_ai.agent.call.id",
+         "value": {
+          "stringValue": "01a13cf9-0847-7256-89f9-56d07a27c1aa"
+         }
+        },
+        {
+         "key": "gen_ai.conversation.id",
+         "value": {
+          "stringValue": "01a13cf9-0847-7256-89f9-56d1a84adbf4"
+         }
+        },
+        {
+         "key": "logfire.msg",
+         "value": {
+          "stringValue": "running tool: build_availability_report"
+         }
+        },
+        {
+         "key": "logfire.json_schema",
+         "value": {
+          "stringValue": "{\"type\":\"object\",\"properties\":{\"gen_ai.tool.name\":{},\"gen_ai.tool.call.id\":{}}}"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "410c1f28b2aed604",
+       "parentSpanId": "020589a0c8f1a69a",
+       "flags": 256,
+       "name": "chat scripted-router",
+       "kind": 3,
+       "startTimeUnixNano": "1792024316756882385",
+       "endTimeUnixNano": "1792024316757795401",
+       "attributes": [
+        {
+         "key": "gen_ai.provider.name",
+         "value": {
+          "stringValue": "function"
+         }
+        },
+        {
+         "key": "gen_ai.system",
+         "value": {
+          "stringValue": "function"
+         }
+        },
+        {
+         "key": "gen_ai.request.model",
+         "value": {
+          "stringValue": "scripted-router"
+         }
+        },
+        {
+         "key": "model_request_parameters",
+         "value": {
+          "stringValue": "{\"function_tools\":[{\"name\":\"build_availability_report\",\"parameters_json_schema\":{\"type\":\"object\",\"properties\":{\"product_code\":{\"description\":\"Seeded demo product code.\",\"type\":\"string\",\"enum\":[\"DEMO-LANTERN\",\"DEMO-KETTLE\",\"DEMO-TENT\"]},\"destination_zone\":{\"description\":\"Seeded demo destination zone.\",\"type\":\"string\",\"enum\":[\"DEMO-NORTH\",\"DEMO-SOUTH\",\"DEMO-EAST\"]}},\"required\":[\"product_code\",\"destination_zone\"]},\"description\":\"Build a stock and shipping availability report for one demo product and destination zone.\",\"outer_typed_dict_key\":null,\"strict\":null,\"sequential\":false,\"kind\":\"function\",\"metadata\":{\"meta\":null,\"annotations\":{\"title\":null,\"readOnlyHint\":true,\"destructiveHint\":null,\"idempotentHint\":true,\"openWorldHint\":false},\"task\":false},\"timeout\":null,\"defer_loading\":false,\"unless_native\":null,\"with_native\":null,\"tool_kind\":null,\"return_schema\":null,\"include_return_schema\":null,\"toolset_id\":null,\"capability_id\":null}],\"native_tools\":[],\"tool_visibility\":{\"build_availability_report\":\"visible\"},\"revealed_tool_names\":[],\"deferred_capability_ids\":[],\"output_mode\":\"text\",\"output_object\":null,\"output_tools\":[],\"prompted_output_template\":null,\"allow_text_output\":true,\"allow_image_output\":false,\"instruction_parts\":[{\"dynamic\":false,\"name\":null,\"id\":\"agent\",\"part_kind\":\"instruction\"}],\"thinking\":null,\"cache\":null}"
+         }
+        },
+        {
+         "key": "gen_ai.tool.definitions",
+         "value": {
+          "stringValue": "[{\"type\":\"function\",\"name\":\"build_availability_report\",\"description\":\"Build a stock and shipping availability report for one demo product and destination zone.\",\"parameters\":{\"type\":\"object\",\"properties\":{\"product_code\":{\"description\":\"Seeded demo product code.\",\"type\":\"string\",\"enum\":[\"DEMO-LANTERN\",\"DEMO-KETTLE\",\"DEMO-TENT\"]},\"destination_zone\":{\"description\":\"Seeded demo destination zone.\",\"type\":\"string\",\"enum\":[\"DEMO-NORTH\",\"DEMO-SOUTH\",\"DEMO-EAST\"]}},\"required\":[\"product_code\",\"destination_zone\"]}}]"
+         }
+        },
+        {
+         "key": "gen_ai.request.max_tokens",
+         "value": {
+          "intValue": "512"
+         }
+        },
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "chat"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "request-router"
+         }
+        },
+        {
+         "key": "gen_ai.agent.call.id",
+         "value": {
+          "stringValue": "01a13cf9-0847-7256-89f9-56d07a27c1aa"
+         }
+        },
+        {
+         "key": "gen_ai.conversation.id",
+         "value": {
+          "stringValue": "01a13cf9-0847-7256-89f9-56d1a84adbf4"
+         }
+        },
+        {
+         "key": "demo.model.synthetic",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "gen_ai.input.messages",
+         "value": {
+          "stringValue": "[{\"role\":\"user\",\"parts\":[{\"type\":\"text\"}]},{\"role\":\"assistant\",\"parts\":[{\"type\":\"tool_call\",\"id\":\"pyd_ai_86e7068f22d640dd83f69a03ccd97d23\",\"name\":\"build_availability_report\"}]},{\"role\":\"user\",\"parts\":[{\"type\":\"tool_call_response\",\"id\":\"pyd_ai_86e7068f22d640dd83f69a03ccd97d23\",\"name\":\"build_availability_report\"}]}]"
+         }
+        },
+        {
+         "key": "gen_ai.output.messages",
+         "value": {
+          "stringValue": "[{\"role\":\"assistant\",\"parts\":[{\"type\":\"text\"}]}]"
+         }
+        },
+        {
+         "key": "logfire.json_schema",
+         "value": {
+          "stringValue": "{\"type\":\"object\",\"properties\":{\"gen_ai.input.messages\":{\"type\":\"array\"},\"gen_ai.output.messages\":{\"type\":\"array\"},\"model_request_parameters\":{\"type\":\"object\"}}}"
+         }
+        },
+        {
+         "key": "gen_ai.usage.input_tokens",
+         "value": {
+          "intValue": "103"
+         }
+        },
+        {
+         "key": "gen_ai.usage.output_tokens",
+         "value": {
+          "intValue": "15"
+         }
+        },
+        {
+         "key": "gen_ai.response.model",
+         "value": {
+          "stringValue": "scripted-router"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "020589a0c8f1a69a",
+       "parentSpanId": "5ac276eac1a47b65",
+       "flags": 256,
+       "name": "invoke_agent request-router",
+       "kind": 1,
+       "startTimeUnixNano": "1792024315977292657",
+       "endTimeUnixNano": "1792024316758745303",
+       "attributes": [
+        {
+         "key": "model_name",
+         "value": {
+          "stringValue": "scripted-router"
+         }
+        },
+        {
+         "key": "agent_name",
+         "value": {
+          "stringValue": "request-router"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "request-router"
+         }
+        },
+        {
+         "key": "gen_ai.agent.call.id",
+         "value": {
+          "stringValue": "01a13cf9-0847-7256-89f9-56d07a27c1aa"
+         }
+        },
+        {
+         "key": "gen_ai.conversation.id",
+         "value": {
+          "stringValue": "01a13cf9-0847-7256-89f9-56d1a84adbf4"
+         }
+        },
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "invoke_agent"
+         }
+        },
+        {
+         "key": "logfire.msg",
+         "value": {
+          "stringValue": "request-router run"
+         }
+        },
+        {
+         "key": "gen_ai.aggregated_usage.input_tokens",
+         "value": {
+          "intValue": "165"
+         }
+        },
+        {
+         "key": "gen_ai.aggregated_usage.output_tokens",
+         "value": {
+          "intValue": "22"
+         }
+        },
+        {
+         "key": "pydantic_ai.all_messages",
+         "value": {
+          "stringValue": "[{\"role\":\"user\",\"parts\":[{\"type\":\"text\"}]},{\"role\":\"assistant\",\"parts\":[{\"type\":\"tool_call\",\"id\":\"pyd_ai_86e7068f22d640dd83f69a03ccd97d23\",\"name\":\"build_availability_report\"}]},{\"role\":\"user\",\"parts\":[{\"type\":\"tool_call_response\",\"id\":\"pyd_ai_86e7068f22d640dd83f69a03ccd97d23\",\"name\":\"build_availability_report\"}]},{\"role\":\"assistant\",\"parts\":[{\"type\":\"text\"}]}]"
+         }
+        },
+        {
+         "key": "logfire.json_schema",
+         "value": {
+          "stringValue": "{\"type\":\"object\",\"properties\":{\"pydantic_ai.all_messages\":{\"type\":\"array\"},\"final_result\":{\"type\":\"object\"}}}"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "api.mcp_adapter"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "bc89886eaf77322d",
+       "parentSpanId": "dfc492059c5b8c35",
+       "flags": 256,
+       "name": "POST",
+       "kind": 3,
+       "startTimeUnixNano": "1792024315995897427",
+       "endTimeUnixNano": "1792024316704422055",
+       "attributes": [
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "POST"
+         }
+        },
+        {
+         "key": "url.full",
+         "value": {
+          "stringValue": "http://worker:8080/mcp"
+         }
+        },
+        {
+         "key": "server.address",
+         "value": {
+          "stringValue": "worker"
+         }
+        },
+        {
+         "key": "server.port",
+         "value": {
+          "intValue": "8080"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "mcp-python-sdk"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "dfc492059c5b8c35",
+       "parentSpanId": "452a381c5c0c3054",
+       "flags": 256,
+       "name": "MCP send tools/call build_availability_report",
+       "kind": 3,
+       "startTimeUnixNano": "1792024315995408165",
+       "endTimeUnixNano": "1792024316704518278",
+       "attributes": [
+        {
+         "key": "mcp.method.name",
+         "value": {
+          "stringValue": "tools/call"
+         }
+        },
+        {
+         "key": "jsonrpc.request.id",
+         "value": {
+          "stringValue": "3"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "opentelemetry.instrumentation.fastapi",
+      "version": "0.66b1"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "5ac276eac1a47b65",
+       "parentSpanId": "02f1929985629639",
+       "flags": 768,
+       "name": "POST /api/ask",
+       "kind": 2,
+       "startTimeUnixNano": "1792024315954713992",
+       "endTimeUnixNano": "1792024316759430574",
+       "attributes": [
+        {
+         "key": "http.scheme",
+         "value": {
+          "stringValue": "http"
+         }
+        },
+        {
+         "key": "http.host",
+         "value": {
+          "stringValue": "172.22.0.6:8000"
+         }
+        },
+        {
+         "key": "net.host.port",
+         "value": {
+          "intValue": "8000"
+         }
+        },
+        {
+         "key": "http.flavor",
+         "value": {
+          "stringValue": "1.1"
+         }
+        },
+        {
+         "key": "http.target",
+         "value": {
+          "stringValue": "/api/ask"
+         }
+        },
+        {
+         "key": "http.url",
+         "value": {
+          "stringValue": "http://api:8000/api/ask"
+         }
+        },
+        {
+         "key": "http.method",
+         "value": {
+          "stringValue": "POST"
+         }
+        },
+        {
+         "key": "http.server_name",
+         "value": {
+          "stringValue": "api:8000"
+         }
+        },
+        {
+         "key": "http.user_agent",
+         "value": {
+          "stringValue": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36"
+         }
+        },
+        {
+         "key": "net.peer.ip",
+         "value": {
+          "stringValue": "172.22.0.7"
+         }
+        },
+        {
+         "key": "net.peer.port",
+         "value": {
+          "intValue": "52928"
+         }
+        },
+        {
+         "key": "http.route",
+         "value": {
+          "stringValue": "/api/ask"
+         }
+        },
+        {
+         "key": "demo.run_id",
+         "value": {
+          "stringValue": "ca2797541c034bdc9308f066e78456a7"
+         }
+        },
+        {
+         "key": "demo.scenario",
+         "value": {
+          "stringValue": "baseline"
+         }
+        },
+        {
+         "key": "demo.mode",
+         "value": {
+          "stringValue": "scripted"
+         }
+        },
+        {
+         "key": "demo.outcome",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "http.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ],
+     "schemaUrl": "https://opentelemetry.io/schemas/1.11.0"
+    }
+   ]
+  },
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "python"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.45.1"
+      }
+     },
+     {
+      "key": "service.instance.id",
+      "value": {
+       "stringValue": "1748e6db-abfc-4f85-97d8-5bcbce3bcf96"
+      }
+     },
+     {
+      "key": "service.namespace",
+      "value": {
+       "stringValue": "trace-continuity-demo"
+      }
+     },
+     {
+      "key": "deployment.environment.name",
+      "value": {
+       "stringValue": "local"
+      }
+     },
+     {
+      "key": "service.version",
+      "value": {
+       "stringValue": "ef0a4d1"
+      }
+     },
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "trace-demo-shipping"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "opentelemetry.instrumentation.fastapi",
+      "version": "0.66b1"
+     },
+     "spans": [
+      {
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "dda2f47b98b72fbe",
+       "parentSpanId": "f17690817c3a421e",
+       "flags": 768,
+       "name": "GET /quotes/{zone}",
+       "kind": 2,
+       "startTimeUnixNano": "1792024316166249736",
+       "endTimeUnixNano": "1792024316667821282",
+       "attributes": [
+        {
+         "key": "http.scheme",
+         "value": {
+          "stringValue": "http"
+         }
+        },
+        {
+         "key": "http.host",
+         "value": {
+          "stringValue": "172.22.0.4:8000"
+         }
+        },
+        {
+         "key": "net.host.port",
+         "value": {
+          "intValue": "8000"
+         }
+        },
+        {
+         "key": "http.flavor",
+         "value": {
+          "stringValue": "1.1"
+         }
+        },
+        {
+         "key": "http.target",
+         "value": {
+          "stringValue": "/quotes/DEMO-NORTH"
+         }
+        },
+        {
+         "key": "http.url",
+         "value": {
+          "stringValue": "http://shipping:8000/quotes/DEMO-NORTH"
+         }
+        },
+        {
+         "key": "http.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.server_name",
+         "value": {
+          "stringValue": "shipping:8000"
+         }
+        },
+        {
+         "key": "net.peer.ip",
+         "value": {
+          "stringValue": "172.22.0.5"
+         }
+        },
+        {
+         "key": "net.peer.port",
+         "value": {
+          "intValue": "34592"
+         }
+        },
+        {
+         "key": "http.route",
+         "value": {
+          "stringValue": "/quotes/{zone}"
+         }
+        },
+        {
+         "key": "http.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ],
+     "schemaUrl": "https://opentelemetry.io/schemas/1.11.0"
+    }
+   ]
+  }
+ ]
+}

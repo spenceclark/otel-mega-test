@@ -1,0 +1,636 @@
+{
+ "resourceLogs": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "python"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.45.1"
+      }
+     },
+     {
+      "key": "service.instance.id",
+      "value": {
+       "stringValue": "02d71407-4035-4d28-ac4d-c32e9e8879e2"
+      }
+     },
+     {
+      "key": "service.namespace",
+      "value": {
+       "stringValue": "trace-continuity-demo"
+      }
+     },
+     {
+      "key": "deployment.environment.name",
+      "value": {
+       "stringValue": "local"
+      }
+     },
+     {
+      "key": "service.version",
+      "value": {
+       "stringValue": "ef0a4d1"
+      }
+     },
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "trace-demo-api"
+      }
+     }
+    ]
+   },
+   "scopeLogs": [
+    {
+     "scope": {
+      "name": "api.main"
+     },
+     "logRecords": [
+      {
+       "timeUnixNano": "1792024315955716352",
+       "observedTimeUnixNano": "1792024315955801861",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "ask received"
+       },
+       "attributes": [
+        {
+         "key": "demo.run_id",
+         "value": {
+          "stringValue": "ca2797541c034bdc9308f066e78456a7"
+         }
+        },
+        {
+         "key": "demo.scenario",
+         "value": {
+          "stringValue": "baseline"
+         }
+        }
+       ],
+       "flags": 1,
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "5ac276eac1a47b65"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "python"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.45.1"
+      }
+     },
+     {
+      "key": "service.instance.id",
+      "value": {
+       "stringValue": "1748e6db-abfc-4f85-97d8-5bcbce3bcf96"
+      }
+     },
+     {
+      "key": "service.namespace",
+      "value": {
+       "stringValue": "trace-continuity-demo"
+      }
+     },
+     {
+      "key": "deployment.environment.name",
+      "value": {
+       "stringValue": "local"
+      }
+     },
+     {
+      "key": "service.version",
+      "value": {
+       "stringValue": "ef0a4d1"
+      }
+     },
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "trace-demo-shipping"
+      }
+     }
+    ]
+   },
+   "scopeLogs": [
+    {
+     "scope": {
+      "name": "api.shipping_stub"
+     },
+     "logRecords": [
+      {
+       "timeUnixNano": "1792024316667148800",
+       "observedTimeUnixNano": "1792024316667228305",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "quote served"
+       },
+       "attributes": [
+        {
+         "key": "destination_zone",
+         "value": {
+          "stringValue": "DEMO-NORTH"
+         }
+        }
+       ],
+       "flags": 1,
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "dda2f47b98b72fbe"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "trace-demo-web"
+      }
+     },
+     {
+      "key": "service.version",
+      "value": {
+       "stringValue": "ef0a4d1"
+      }
+     },
+     {
+      "key": "service.namespace",
+      "value": {
+       "stringValue": "trace-continuity-demo"
+      }
+     },
+     {
+      "key": "deployment.environment.name",
+      "value": {
+       "stringValue": "local"
+      }
+     }
+    ]
+   },
+   "scopeLogs": [
+    {
+     "scope": {
+      "name": "trace-demo-web",
+      "version": "ef0a4d1"
+     },
+     "logRecords": [
+      {
+       "timeUnixNano": "1792024316762000000",
+       "observedTimeUnixNano": "1792024316762000000",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "ui.ask completed"
+       },
+       "attributes": [
+        {
+         "key": "demo.outcome",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "demo.run_id",
+         "value": {
+          "stringValue": "ca2797541c034bdc9308f066e78456a7"
+         }
+        }
+       ],
+       "flags": 1,
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "9134158521c18876"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "python"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.45.1"
+      }
+     },
+     {
+      "key": "service.instance.id",
+      "value": {
+       "stringValue": "02d71407-4035-4d28-ac4d-c32e9e8879e2"
+      }
+     },
+     {
+      "key": "service.namespace",
+      "value": {
+       "stringValue": "trace-continuity-demo"
+      }
+     },
+     {
+      "key": "deployment.environment.name",
+      "value": {
+       "stringValue": "local"
+      }
+     },
+     {
+      "key": "service.version",
+      "value": {
+       "stringValue": "ef0a4d1"
+      }
+     },
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "trace-demo-api"
+      }
+     }
+    ]
+   },
+   "scopeLogs": [
+    {
+     "scope": {
+      "name": "api.main"
+     },
+     "logRecords": [
+      {
+       "timeUnixNano": "1792024316758939392",
+       "observedTimeUnixNano": "1792024316758973794",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "ask completed"
+       },
+       "attributes": [
+        {
+         "key": "demo.run_id",
+         "value": {
+          "stringValue": "ca2797541c034bdc9308f066e78456a7"
+         }
+        },
+        {
+         "key": "demo.scenario",
+         "value": {
+          "stringValue": "baseline"
+         }
+        },
+        {
+         "key": "demo.outcome",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "demo.duration_ms",
+         "value": {
+          "intValue": "803"
+         }
+        }
+       ],
+       "flags": 1,
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "5ac276eac1a47b65"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "trace-demo-worker"
+      }
+     },
+     {
+      "key": "service.namespace",
+      "value": {
+       "stringValue": "trace-continuity-demo"
+      }
+     },
+     {
+      "key": "deployment.environment.name",
+      "value": {
+       "stringValue": "local"
+      }
+     },
+     {
+      "key": "service.version",
+      "value": {
+       "stringValue": "ef0a4d1"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "dotnet"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.19.1"
+      }
+     }
+    ]
+   },
+   "scopeLogs": [
+    {
+     "scope": {
+      "name": "ModelContextProtocol.Server.McpServer"
+     },
+     "logRecords": [
+      {
+       "timeUnixNano": "1792024316003609200",
+       "observedTimeUnixNano": "1792024316003609200",
+       "severityNumber": 9,
+       "severityText": "Information",
+       "body": {
+        "stringValue": "{EndpointName} method '{Method}' request handler called."
+       },
+       "attributes": [
+        {
+         "key": "EndpointName",
+         "value": {
+          "stringValue": "Server (Worker 1.0.0.0), Client (mcp 0.1.0)"
+         }
+        },
+        {
+         "key": "Method",
+         "value": {
+          "stringValue": "tools/call"
+         }
+        }
+       ],
+       "flags": 1,
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "50efe9c7a982e6b5",
+       "eventName": "LogRequestHandlerCalled"
+      },
+      {
+       "timeUnixNano": "1792024316700226300",
+       "observedTimeUnixNano": "1792024316700226300",
+       "severityNumber": 9,
+       "severityText": "Information",
+       "body": {
+        "stringValue": "\"{ToolName}\" completed. IsError = {IsError}."
+       },
+       "attributes": [
+        {
+         "key": "ToolName",
+         "value": {
+          "stringValue": "build_availability_report"
+         }
+        },
+        {
+         "key": "IsError",
+         "value": {
+          "boolValue": false
+         }
+        }
+       ],
+       "flags": 1,
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "50efe9c7a982e6b5",
+       "eventName": "ToolCallCompleted"
+      },
+      {
+       "timeUnixNano": "1792024316703551700",
+       "observedTimeUnixNano": "1792024316703551700",
+       "severityNumber": 9,
+       "severityText": "Information",
+       "body": {
+        "stringValue": "{EndpointName} method '{Method}' request handler completed in {ElapsedMilliseconds}ms."
+       },
+       "attributes": [
+        {
+         "key": "EndpointName",
+         "value": {
+          "stringValue": "Server (Worker 1.0.0.0), Client (mcp 0.1.0)"
+         }
+        },
+        {
+         "key": "Method",
+         "value": {
+          "stringValue": "tools/call"
+         }
+        },
+        {
+         "key": "ElapsedMilliseconds",
+         "value": {
+          "doubleValue": 699.8829
+         }
+        }
+       ],
+       "flags": 1,
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "50efe9c7a982e6b5",
+       "eventName": "LogRequestHandlerCompleted"
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "Worker.McpTools.AvailabilityTools"
+     },
+     "logRecords": [
+      {
+       "timeUnixNano": "1792024316064885700",
+       "observedTimeUnixNano": "1792024316064885700",
+       "severityNumber": 9,
+       "severityText": "Information",
+       "body": {
+        "stringValue": "build_availability_report started {demo.scenario} {demo.mode}"
+       },
+       "attributes": [
+        {
+         "key": "demo.scenario",
+         "value": {
+          "stringValue": "baseline"
+         }
+        },
+        {
+         "key": "demo.mode",
+         "value": {
+          "stringValue": "scripted"
+         }
+        }
+       ],
+       "flags": 1,
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "50efe9c7a982e6b5"
+      },
+      {
+       "timeUnixNano": "1792024316692073200",
+       "observedTimeUnixNano": "1792024316692073200",
+       "severityNumber": 9,
+       "severityText": "Information",
+       "body": {
+        "stringValue": "build_availability_report completed {demo.outcome} {demo.error_code} {demo.duration_ms}"
+       },
+       "attributes": [
+        {
+         "key": "demo.outcome",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "demo.error_code",
+         "value": {}
+        },
+        {
+         "key": "demo.duration_ms",
+         "value": {
+          "doubleValue": 627.0637
+         }
+        }
+       ],
+       "flags": 1,
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "50efe9c7a982e6b5"
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "Worker.Tools.LookupAvailability"
+     },
+     "logRecords": [
+      {
+       "timeUnixNano": "1792024316563603900",
+       "observedTimeUnixNano": "1792024316563603900",
+       "severityNumber": 9,
+       "severityText": "Information",
+       "body": {
+        "stringValue": "lookup_availability branch completed {demo.branch} {demo.duration_ms}"
+       },
+       "attributes": [
+        {
+         "key": "demo.branch",
+         "value": {
+          "stringValue": "sql"
+         }
+        },
+        {
+         "key": "demo.duration_ms",
+         "value": {
+          "doubleValue": 428.7574
+         }
+        }
+       ],
+       "flags": 1,
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "e7beb280b5da922c"
+      },
+      {
+       "timeUnixNano": "1792024316674025600",
+       "observedTimeUnixNano": "1792024316674025600",
+       "severityNumber": 9,
+       "severityText": "Information",
+       "body": {
+        "stringValue": "lookup_availability branch completed {demo.branch} {demo.duration_ms}"
+       },
+       "attributes": [
+        {
+         "key": "demo.branch",
+         "value": {
+          "stringValue": "http"
+         }
+        },
+        {
+         "key": "demo.duration_ms",
+         "value": {
+          "doubleValue": 518.6333
+         }
+        }
+       ],
+       "flags": 1,
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "e7beb280b5da922c"
+      },
+      {
+       "timeUnixNano": "1792024316674492900",
+       "observedTimeUnixNano": "1792024316674492900",
+       "severityNumber": 9,
+       "severityText": "Information",
+       "body": {
+        "stringValue": "lookup_availability join {demo.outcome} {demo.duration_ms}"
+       },
+       "attributes": [
+        {
+         "key": "demo.outcome",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "demo.duration_ms",
+         "value": {
+          "doubleValue": 540.3976
+         }
+        }
+       ],
+       "flags": 1,
+       "traceId": "622cf459124fbad4a0d2c60476265c7d",
+       "spanId": "e7beb280b5da922c"
+      }
+     ]
+    }
+   ],
+   "schemaUrl": "https://opentelemetry.io/schemas/1.44.0"
+  }
+ ]
+}

@@ -16,12 +16,14 @@ demo reset         # DESTRUCTIVE: drop volumes and delete evidence/
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import shutil
 import socket
 import subprocess
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -236,6 +238,74 @@ def _summarize(manifest: Path, assertions: Path) -> dict[str, Any]:
     }
 
 
+def _assert_traces_module() -> Any:
+    spec = importlib.util.spec_from_file_location("assert_traces", ROOT / "scripts" / "assert-traces.py")
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["assert_traces"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _judge_carrier_case(case: dict[str, Any], spans: list[Any], at: Any) -> tuple[bool, str]:
+    by_id = {(s.trace_id, s.span_id): s for s in spans}
+    if not case["ok"]:
+        return False, "tool call failed: bad context broke business handling"
+    trace = case.get("meta_trace") if case["case"] in ("conflict", "header-all-zero") else case.get("header_trace")
+    mcp = next((s for s in spans if s.trace_id == trace and at.is_mcp_call_server(s)), None)
+    if mcp is None:
+        return False, f"no MCP tools/call server span in trace {trace}"
+    link = next((by_id[lk] for lk in mcp.links if lk in by_id), None)
+    if case["case"] == "conflict":
+        ok = mcp.parent_id == case["meta_span"] and link is not None and link.trace_id == case["header_trace"] and link.parent_id == case["header_span"]
+        return ok, (
+            f"MCP op follows _meta (parent {mcp.parent_id}, expected {case['meta_span']}); HTTP server stays in header trace "
+            f"{link.trace_id if link else None} (expected {case['header_trace']}); joined only by a link"
+        )
+    if case["case"] == "header-all-zero":
+        ok = mcp.parent_id == case["meta_span"] and link is not None and link.trace_id != "0" * 32 and not link.parent_id
+        return ok, f"all-zero header discarded: HTTP server span is a new root ({link.trace_id if link else None}); MCP op parent from _meta"
+    parent = by_id.get((mcp.trace_id, mcp.parent_id))
+    ok = parent is not None and parent.kind == at.SERVER and parent.parent_id == case["header_span"]
+    return ok, f"invalid _meta discarded; MCP op falls back to the HTTP server span {at._desc(parent)}"
+
+
+def cmd_probe_carriers(_: argparse.Namespace) -> int:
+    apply_scenario("baseline")
+    probe = (ROOT / "tests" / "trace-contracts" / "carrier_probe.py").read_bytes()
+    say("$ docker compose exec -T api python - < tests/trace-contracts/carrier_probe.py")
+    proc = subprocess.run(["docker", "compose", "exec", "-T", "api", "python", "-"], cwd=ROOT, input=probe, capture_output=True, check=False)
+    if proc.returncode != 0:
+        print(proc.stderr.decode(errors="replace"))
+        return 1
+    cases: list[dict[str, Any]] = json.loads(proc.stdout.decode().strip().splitlines()[-1])
+    at = _assert_traces_module()
+    deadline = time.monotonic() + 30
+    while True:
+        spans, _ = at.load(EVIDENCE / "otel")
+        results = [(c["case"], *_judge_carrier_case(c, spans, at)) for c in cases]
+        if all(ok for _, ok, _ in results) or time.monotonic() >= deadline:
+            break
+        time.sleep(2)
+    for name, ok, detail in results:
+        print(f"  [{'PASS' if ok else 'FAIL'}] {name}: {detail}")
+    passed = all(ok for _, ok, _ in results)
+    summary = {
+        "schema_version": 1,
+        "experiment": "carrier-policy",
+        "git_sha": git_sha(),
+        "recorded_at": datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ"),
+        "hypothesis": "Malformed carriers are discarded without breaking the tool call; conflicting carriers are never merged.",
+        "policy": "Each SDK extracts only its own carrier: _meta parents the MCP operation, the header parents the HTTP server span; they are joined only by a link.",
+        "cases": [{"case": n, "ok": ok, "detail": d} for n, ok, d in results],
+        "verdict": "confirmed" if passed else "UNEXPECTED",
+    }
+    (ROOT / "experiments" / "carrier-policy").mkdir(exist_ok=True)
+    (ROOT / "experiments" / "carrier-policy" / "result.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    say(f"carrier-policy: {summary['verdict']}")
+    return 0 if passed else 1
+
+
 def cmd_down(_: argparse.Namespace) -> int:
     return sh("docker", "compose", "--profile", "e2e", "down", check=False)
 
@@ -266,6 +336,7 @@ def main() -> int:
     p.add_argument("--profile", default="baseline", choices=["baseline", "logical-error"])
     p = sub.add_parser("experiment")
     p.add_argument("name", choices=[*sorted(n for n in SCENARIOS if n not in ("baseline", "concurrency")), "all"])
+    sub.add_parser("probe-carriers")
     sub.add_parser("down")
     p = sub.add_parser("reset")
     p.add_argument("--yes", action="store_true")
@@ -276,6 +347,7 @@ def main() -> int:
         "run": cmd_run,
         "verify": cmd_verify,
         "experiment": cmd_experiment,
+        "probe-carriers": cmd_probe_carriers,
         "down": cmd_down,
         "reset": cmd_reset,
     }

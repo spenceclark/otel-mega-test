@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "experiment": "logical-error",
+  "git_sha": "5c38f61",
+  "mode": "scripted",
+  "recorded_at": "20261015T003744Z",
+  "hypothesis": "A logical MCP tool failure travels over HTTP 200 and must still be visible as a failed logical operation.",
+  "fault": "The MCP tool completes its work, then returns isError=true (HTTP 200).",
+  "fix": "None needed \u2014 this scenario verifies the status mapping. Rerun baseline to confirm outcome-ok.",
+  "expected_graph": "Full graph; MCP client span ERROR, transport HTTP span 200/UNSET, API outcome tool_error.",
+  "broken": {
+    "run_id": "eab2e04784db4c6fba1be4e28b9004fd",
+    "api_trace_id": "9b71a5bf564d1f110547b2f28effa06d",
+    "outcome": "error",
+    "expectations_met": true,
+    "checks": {
+      "browser-root": {
+        "ok": true,
+        "detail": "ui.ask 0fa12be51d8a50fa trace 9b71a5bf564d1f110547b2f28effa06d parent=none"
+      },
+      "required-spans": {
+        "ok": true,
+        "detail": "all present"
+      },
+      "unique-span-ids": {
+        "ok": true,
+        "detail": "18 spans in trace"
+      },
+      "parents-resolve": {
+        "ok": true,
+        "detail": "ok"
+      },
+      "browser-client->api-server": {
+        "ok": true,
+        "detail": "api server parent=3851d2a5223a355e web client=3851d2a5223a355e"
+      },
+      "api-http-client->worker-http-server": {
+        "ok": true,
+        "detail": "worker HTTP server trace-demo-worker:'POST /mcp/'(c100fb17f5f7696a) in trace 9b71a5bf564d1f110547b2f28effa06d; parent=trace-demo-api:'POST'(eba5b1bb9d6941f4)"
+      },
+      "mcp-message-parent": {
+        "ok": true,
+        "detail": "MCP server parent=trace-demo-api:'MCP send tools/call build_availability_report'(06de20b65b75dd55) expected=trace-demo-api:'MCP send tools/call build_availability_report'(06de20b65b75dd55)"
+      },
+      "mcp-http-link": {
+        "ok": true,
+        "detail": "MCP server links=[('9b71a5bf564d1f110547b2f28effa06d', 'c100fb17f5f7696a')] -> trace-demo-worker:'POST /mcp/'(c100fb17f5f7696a)"
+      },
+      "agent-ancestry": {
+        "ok": true,
+        "detail": "router>trace-demo-api:'MCP send tools/call build_availability_report'(06de20b65b75dd55): True; MCP server>analyst: True; analyst>tool: True"
+      },
+      "io-under-tool": {
+        "ok": true,
+        "detail": "tool>db: True; tool>shipping: True"
+      },
+      "io-overlap": {
+        "ok": true,
+        "detail": "overlap=319.2ms tool_ends_after_both=True db=319.2ms http=511.9ms sum=831.0ms tool=553.1ms"
+      },
+      "shipping-server-hop": {
+        "ok": true,
+        "detail": "shipping server parent=7dd17874c287613a expected=7dd17874c287613a"
+      },
+      "logs-correlated": {
+        "ok": true,
+        "detail": "trace-demo-web=1, trace-demo-api=2, trace-demo-worker=8, trace-demo-shipping=1 log records attached to spans in the trace"
+      },
+      "privacy-canaries": {
+        "ok": true,
+        "detail": "no canaries in spans/logs of the submission"
+      },
+      "no-export-recursion": {
+        "ok": true,
+        "detail": "0 telemetry-export spans in trace"
+      },
+      "logical-error-mapped": {
+        "ok": true,
+        "detail": "api outcome=tool_error; api trace-demo-api:'execute_tool build_availability_report'(a910167f1fb4adff) status=2; MCP client status=0; MCP server status=2 error.type=tool_error; HTTP client status_code=200 status=0"
+      }
+    }
+  },
+  "fixed": {
+    "run_id": "3146f52a50de423aa3eb32594f140f17",
+    "api_trace_id": "b8cb1d10422fa0d18340faba6780061f",
+    "outcome": "ok",
+    "expectations_met": true,
+    "checks": {
+      "browser-root": {
+        "ok": true,
+        "detail": "ui.ask 42999c8ab1200447 trace b8cb1d10422fa0d18340faba6780061f parent=none"
+      },
+      "required-spans": {
+        "ok": true,
+        "detail": "all present"
+      },
+      "unique-span-ids": {
+        "ok": true,
+        "detail": "19 spans in trace"
+      },
+      "parents-resolve": {
+        "ok": true,
+        "detail": "ok"
+      },
+      "browser-client->api-server": {
+        "ok": true,
+        "detail": "api server parent=4c834d1e989a67d0 web client=4c834d1e989a67d0"
+      },
+      "api-http-client->worker-http-server": {
+        "ok": true,
+        "detail": "worker HTTP server trace-demo-worker:'POST /mcp/'(4e892b53c2a496b2) in trace b8cb1d10422fa0d18340faba6780061f; parent=trace-demo-api:'POST'(981f95434d71c5d0)"
+      },
+      "mcp-message-parent": {
+        "ok": true,
+        "detail": "MCP server parent=trace-demo-api:'MCP send tools/call build_availability_report'(9089ad2ab2e521cc) expected=trace-demo-api:'MCP send tools/call build_availability_report'(9089ad2ab2e521cc)"
+      },
+      "mcp-http-link": {
+        "ok": true,
+        "detail": "MCP server links=[('b8cb1d10422fa0d18340faba6780061f', '4e892b53c2a496b2')] -> trace-demo-worker:'POST /mcp/'(4e892b53c2a496b2)"
+      },
+      "agent-ancestry": {
+        "ok": true,
+        "detail": "router>trace-demo-api:'MCP send tools/call build_availability_report'(9089ad2ab2e521cc): True; MCP server>analyst: True; analyst>tool: True"
+      },
+      "io-under-tool": {
+        "ok": true,
+        "detail": "tool>db: True; tool>shipping: True"
+      },
+      "io-overlap": {
+        "ok": true,
+        "detail": "overlap=343.3ms tool_ends_after_both=True db=343.3ms http=510.6ms sum=853.9ms tool=553.6ms"
+      },
+      "shipping-server-hop": {
+        "ok": true,
+        "detail": "shipping server parent=04d71ec52d983960 expected=04d71ec52d983960"
+      },
+      "logs-correlated": {
+        "ok": true,
+        "detail": "trace-demo-web=1, trace-demo-api=2, trace-demo-worker=2, trace-demo-shipping=1 log records attached to spans in the trace"
+      },
+      "privacy-canaries": {
+        "ok": true,
+        "detail": "no canaries in spans/logs of the submission"
+      },
+      "no-export-recursion": {
+        "ok": true,
+        "detail": "0 telemetry-export spans in trace"
+      },
+      "outcome-ok": {
+        "ok": true,
+        "detail": "api demo.outcome=ok"
+      }
+    }
+  },
+  "verdict": "confirmed"
+}

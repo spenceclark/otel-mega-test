@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "single",
+  "run_id": "ca2797541c034bdc9308f066e78456a7",
+  "trace_id": "622cf459124fbad4a0d2c60476265c7d",
+  "outcome": "ok",
+  "error_code": null,
+  "started_at": "2026-10-15T00:31:55.915Z",
+  "finished_at": "2026-10-15T00:31:57.561Z",
+  "scenario": "baseline",
+  "base_url": "http://web:8080",
+  "telemetry_export": "ok"
+}

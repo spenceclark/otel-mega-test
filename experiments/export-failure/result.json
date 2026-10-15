@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "experiment": "export-failure",
+  "git_sha": "5c38f61",
+  "mode": "scripted",
+  "recorded_at": "20261015T003910Z",
+  "hypothesis": "Lost export is distinguishable from lost propagation; downstream spans keep the browser trace id while the API's spans never arrive.",
+  "fault": "Only the API exports to an unresolvable OTLP endpoint (API_OTLP_ENDPOINT).",
+  "fix": "Point the API back at the Collector (unset API_OTLP_ENDPOINT).",
+  "expected_graph": "Browser and .NET spans share the submission trace id; .NET spans have dangling parents (the missing Python spans).",
+  "broken": {
+    "run_id": "c07ba9b3ef77432dabd1704fabeeaccb",
+    "api_trace_id": "fbb8c23a55cd6d1db136cdac10b835eb",
+    "outcome": "ok",
+    "expectations_met": true,
+    "checks": {
+      "browser-root": {
+        "ok": true,
+        "detail": "ui.ask fe2db2cf7c4b40f8 trace fbb8c23a55cd6d1db136cdac10b835eb parent=none"
+      },
+      "required-spans": {
+        "ok": false,
+        "detail": "missing from submission trace: api SERVER /api/ask; api invoke_agent request-router; api MCP tools/call CLIENT | candidate spans in OTHER traces during the run (propagation loss): trace-demo-worker@83e80733, trace-demo-worker@c5246703"
+      },
+      "unique-span-ids": {
+        "ok": true,
+        "detail": "11 spans in trace"
+      },
+      "parents-resolve": {
+        "ok": false,
+        "detail": "dangling parents: [\"trace-demo-worker:'tools/call build_availability_report'(f51baaa79f2ad08e)\", \"trace-demo-worker:'POST /mcp/'(2192a785bf7e1c82)\"] cycles: 0 \u2014 children still carry the submission trace id, so this is EXPORT loss of their parents, not propagation loss"
+      },
+      "browser-client->api-server": {
+        "ok": false,
+        "detail": "api server parent=None web client=53975e1dd2c68b42"
+      },
+      "api-http-client->worker-http-server": {
+        "ok": false,
+        "detail": "worker HTTP server trace-demo-worker:'POST /mcp/'(2192a785bf7e1c82) in trace fbb8c23a55cd6d1db136cdac10b835eb; parent=<missing>"
+      },
+      "mcp-message-parent": {
+        "ok": false,
+        "detail": "MCP server parent=<missing> expected=<missing>"
+      },
+      "mcp-http-link": {
+        "ok": true,
+        "detail": "MCP server links=[('fbb8c23a55cd6d1db136cdac10b835eb', '2192a785bf7e1c82')] -> trace-demo-worker:'POST /mcp/'(2192a785bf7e1c82)"
+      },
+      "agent-ancestry": {
+        "ok": false,
+        "detail": "router><missing>: False; MCP server>analyst: True; analyst>tool: True"
+      },
+      "io-under-tool": {
+        "ok": true,
+        "detail": "tool>db: True; tool>shipping: True"
+      },
+      "io-overlap": {
+        "ok": true,
+        "detail": "overlap=300.8ms tool_ends_after_both=True db=301.2ms http=503.9ms sum=805.1ms tool=505.6ms"
+      },
+      "shipping-server-hop": {
+        "ok": true,
+        "detail": "shipping server parent=95d7235b468d4550 expected=95d7235b468d4550"
+      },
+      "logs-correlated": {
+        "ok": false,
+        "detail": "trace-demo-web=1, trace-demo-api=0, trace-demo-worker=8, trace-demo-shipping=1 log records attached to spans in the trace"
+      },
+      "privacy-canaries": {
+        "ok": true,
+        "detail": "no canaries in spans/logs of the submission"
+      },
+      "no-export-recursion": {
+        "ok": true,
+        "detail": "0 telemetry-export spans in trace"
+      },
+      "outcome-ok": {
+        "ok": false,
+        "detail": "api demo.outcome=None"
+      }
+    }
+  },
+  "fixed": {
+    "run_id": "f978fff71c2f4a53ada02cec54673a98",
+    "api_trace_id": "601719169abea81eb3a103db019c54ca",
+    "outcome": "ok",
+    "expectations_met": true,
+    "checks": {
+      "browser-root": {
+        "ok": true,
+        "detail": "ui.ask 582a46e200b43aa4 trace 601719169abea81eb3a103db019c54ca parent=none"
+      },
+      "required-spans": {
+        "ok": true,
+        "detail": "all present"
+      },
+      "unique-span-ids": {
+        "ok": true,
+        "detail": "18 spans in trace"
+      },
+      "parents-resolve": {
+        "ok": true,
+        "detail": "ok"
+      },
+      "browser-client->api-server": {
+        "ok": true,
+        "detail": "api server parent=d18fed8d1df9c3ea web client=d18fed8d1df9c3ea"
+      },
+      "api-http-client->worker-http-server": {
+        "ok": true,
+        "detail": "worker HTTP server trace-demo-worker:'POST /mcp/'(db3d2e87c30ac51b) in trace 601719169abea81eb3a103db019c54ca; parent=trace-demo-api:'POST'(534a93f4edc6c224)"
+      },
+      "mcp-message-parent": {
+        "ok": true,
+        "detail": "MCP server parent=trace-demo-api:'MCP send tools/call build_availability_report'(1e0593bcb280ddf9) expected=trace-demo-api:'MCP send tools/call build_availability_report'(1e0593bcb280ddf9)"
+      },
+      "mcp-http-link": {
+        "ok": true,
+        "detail": "MCP server links=[('601719169abea81eb3a103db019c54ca', 'db3d2e87c30ac51b')] -> trace-demo-worker:'POST /mcp/'(db3d2e87c30ac51b)"
+      },
+      "agent-ancestry": {
+        "ok": true,
+        "detail": "router>trace-demo-api:'MCP send tools/call build_availability_report'(1e0593bcb280ddf9): True; MCP server>analyst: True; analyst>tool: True"
+      },
+      "io-under-tool": {
+        "ok": true,
+        "detail": "tool>db: True; tool>shipping: True"
+      },
+      "io-overlap": {
+        "ok": true,
+        "detail": "overlap=301.2ms tool_ends_after_both=True db=301.4ms http=503.1ms sum=804.5ms tool=503.8ms"
+      },
+      "shipping-server-hop": {
+        "ok": true,
+        "detail": "shipping server parent=6e0e95febe731c4e expected=6e0e95febe731c4e"
+      },
+      "logs-correlated": {
+        "ok": true,
+        "detail": "trace-demo-web=1, trace-demo-api=2, trace-demo-worker=8, trace-demo-shipping=1 log records attached to spans in the trace"
+      },
+      "privacy-canaries": {
+        "ok": true,
+        "detail": "no canaries in spans/logs of the submission"
+      },
+      "no-export-recursion": {
+        "ok": true,
+        "detail": "0 telemetry-export spans in trace"
+      },
+      "outcome-ok": {
+        "ok": true,
+        "detail": "api demo.outcome=ok"
+      }
+    }
+  },
+  "verdict": "confirmed"
+}

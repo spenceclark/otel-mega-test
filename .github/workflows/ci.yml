@@ -33,14 +33,15 @@ jobs:
           uv run ruff format --check
           uv run pyright
           uv run pytest -q
-      - name: Scripts lint
+      - name: Scripts lint + trace-assertion unit tests
         run: |
-          uvx ruff@0.17.0 check scripts
-          uvx ruff@0.17.0 format --check scripts
-          uv run --quiet scripts/assert-traces.py --help > /dev/null
+          uvx ruff@0.17.0 check scripts tests/trace-contracts
+          uvx ruff@0.17.0 format --check scripts tests/trace-contracts
+          uv run --quiet --no-project --python 3.14 python -m unittest discover -s tests/trace-contracts -v
       - name: .NET build and tests
         run: |
-          dotnet build apps/worker/Tests -warnaserror
+          dotnet restore trace-continuity-demo.slnx --locked-mode
+          dotnet build apps/worker/Tests --no-restore -warnaserror
           dotnet test apps/worker/Tests --no-build
       - name: Web typecheck and build
         working-directory: apps/web
