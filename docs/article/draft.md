@@ -15,6 +15,76 @@ non-root span's parent exists in the captured trace, the parents are the *right*
 measurably overlap under the tool that launched them. A shared backend, matching service names or a common
 request id do not count — the Collector forwards; it does not repair parents.
 
+## 1b. The button
+
+The whole experiment starts from one deliberately plain page: a question, a product, a destination zone, and
+*Submit*. The header line shows which scenario and model mode the backend is running, read from `GET /api/config`
+when the page loads.
+
+| Before | After one click |
+|---|---|
+| ![The demo page](img/ui-start.png) | ![The answer, the evidence and the ids](img/ui-result.png) |
+
+The answer comes back with the structured evidence it was built from (stock from PostgreSQL, the quote from the
+shipping service) and two ids: the server-generated `run_id` and the `trace_id`. The trace id is for diagnostics
+only and grants no access to anything.
+
+In the browser's network log the click is **one** application request. The telemetry SDK then adds two
+same-origin exports once the interaction span has ended:
+
+```text
+POST /api/ask               200   the click
+POST /telemetry/v1/traces   200   OTLP export via the gateway (not traced itself)
+POST /telemetry/v1/logs     200   OTLP export via the gateway (not traced itself)
+```
+
+The request carries the business payload and, added by the fetch instrumentation, one `traceparent` header:
+
+```http
+POST /api/ask HTTP/1.1
+Host: 127.0.0.1:5173
+Content-Type: application/json
+X-Demo-Canary: CANARY-HEADER-e620
+traceparent: 00-fdb5f299a4f3d6b56234bb8a1c803361-fff037090c5a4cea-01
+
+{"message": "Can I get the demo lantern delivered to DEMO-NORTH?", "product_code": "DEMO-LANTERN", "destination_zone": "DEMO-NORTH"}
+```
+
+(The `traceparent` value is read back from the trace rather than from DevTools. The API's server span records
+`fff037090c5a4cea`, the browser's `POST` span, as its parent, and that parent can only have come from this header.
+`X-Demo-Canary` is a privacy canary: a header value that must never appear in telemetry.)
+
+The response, verbatim:
+
+```json
+{
+  "run_id": "57a7d6fab0bc41938ed946d4c456c96e",
+  "answer": "Scripted router answer from the availability report. CANARY-COMPLETION-3d7a",
+  "evidence": {
+    "product_code": "DEMO-LANTERN",
+    "destination_zone": "DEMO-NORTH",
+    "available": true,
+    "quantity_on_hand": 12,
+    "warehouse": "DEMO-WH-1",
+    "shipping": {
+      "destination_zone": "DEMO-NORTH",
+      "carrier": "DEMO-CARRIER",
+      "price_cents": 1200,
+      "currency": "EUR",
+      "eta_days": 2,
+      "reference": "CANARY-SHIPREF-5b1e"
+    },
+    "summary": "DEMO-LANTERN: 12 on hand at DEMO-WH-1; ships to DEMO-NORTH in 2 days. CANARY-ANALYST-0f2b"
+  },
+  "trace_id": "fdb5f299a4f3d6b56234bb8a1c803361",
+  "scenario": "baseline",
+  "mode": "scripted"
+}
+```
+
+The `trace_id` in the response is the one in the request's `traceparent`: the API joined the browser's trace and did
+not start its own. Everything else in this article happens between that request and that response.
+
 ## 2. The first waterfall
 
 The deterministic mode swaps each framework's model for a scripted one at its model abstraction (a Pydantic AI
