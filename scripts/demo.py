@@ -81,6 +81,17 @@ def prepare_evidence() -> None:
         (EVIDENCE / "otel").chmod(0o777)
 
 
+def configured(name: str) -> bool:
+    """Set in the shell or in the repo-root .env (Compose reads both; the shell wins)."""
+    if os.environ.get(name):
+        return True
+    try:
+        lines = (ROOT / ".env").read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return False
+    return any(k.strip() == name and v.strip().strip("\"'") for k, _, v in (ln.partition("=") for ln in lines if not ln.lstrip().startswith("#")))
+
+
 def port_free(port: int) -> bool:
     with socket.socket() as s:
         return s.connect_ex(("127.0.0.1", port)) != 0
@@ -101,10 +112,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             for port in (5173, 14318, 55432):
                 if not port_free(port):
                     problems.append(f"127.0.0.1:{port} is already in use by another process")
-    if args.mode == "live" and not os.environ.get("ANTHROPIC_API_KEY"):
-        problems.append("live mode needs ANTHROPIC_API_KEY in the environment")
-    if args.logfire and not os.environ.get("LOGFIRE_TOKEN"):
-        problems.append("--logfire needs LOGFIRE_TOKEN (and LOGFIRE_OTLP_ENDPOINT for a non-EU project)")
+    if args.mode == "live" and not configured("ANTHROPIC_API_KEY"):
+        problems.append("live mode needs ANTHROPIC_API_KEY (environment or .env)")
+    if args.logfire and not configured("LOGFIRE_TOKEN"):
+        problems.append("--logfire needs LOGFIRE_TOKEN in the environment or .env (and LOGFIRE_OTLP_ENDPOINT for a non-EU project)")
     for p in problems:
         say("PROBLEM: " + p)
     say("doctor: OK" if not problems else f"doctor: {len(problems)} problem(s)")
