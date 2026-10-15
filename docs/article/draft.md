@@ -42,6 +42,13 @@ worker       │       └ chat scripted-analyst             3 ms
 api          └ chat scripted-router                      1 ms
 ```
 
+The same shape in Logfire, from the live-model run with logs and span events filtered out — 23 spans, four
+services, one tree. The extra rows against the scripted tree are real model traffic: each `chat claude-haiku-5-5`
+span now has an HTTP child (`anthropic.messages.create` from the Anthropic Python SDK, `POST` from .NET's
+`HttpClient`), and the model calls dominate the 9.5 s while the SQL/HTTP pair is the short stack at 11:01:32:
+
+![The live trace in Logfire, spans only](img/logfire-live-spans-only.png)
+
 The assertion tool (`scripts/assert-traces.py`) checks sixteen relationships on that graph and passes. Twenty
 simultaneous clicks over the API's single long-lived MCP client produced twenty distinct traces, each with exactly
 one API request and one MCP operation, and zero spans parented into another submission's trace (section 6).
