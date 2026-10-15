@@ -54,7 +54,11 @@ Then open <http://127.0.0.1:5173>, submit the default question, and copy the tra
 
 ## What has been verified (scripted mode, 15 Oct 2026)
 
-From a clean clone on Windows via `demo.ps1`:
+Real-world validation: clicks in a real Chrome against live models with Logfire on — one click passes all 16
+checks (23 spans, one trace, 325 ms SQL/HTTP overlap), five tabs clicked together stay five separate traces, and
+the article is written around that run ([docs/article/draft.md](docs/article/draft.md)).
+
+From a clean clone on Windows via `demo.ps1` (scripted models):
 
 - Baseline: one Playwright click → 19 spans in **one trace** across `trace-demo-web`, `-api`, `-worker`,
   `-shipping`; all 16 graph checks pass, including the message-first MCP parent, the HTTP pair, a log record

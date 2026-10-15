@@ -86,7 +86,9 @@ class Router:
         result = await self.agent.run(
             prompt,
             model=self.live_model or scripted_model(args),
-            model_settings=ModelSettings(max_tokens=self.settings.max_output_tokens),
+            # Live Haiku sometimes emitted the one allowed tool call twice in a single response, which trips
+            # tool_calls_limit=1 (workload_failure). Anthropic's disable_parallel_tool_use is the tool-choice control.
+            model_settings=ModelSettings(max_tokens=self.settings.max_output_tokens, parallel_tool_calls=False),
             usage_limits=USAGE_LIMITS,
         )
         for message in result.all_messages():

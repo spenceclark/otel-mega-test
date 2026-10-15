@@ -116,6 +116,20 @@ Observed only in live mode:
 - **Compose gotcha fixed:** `ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}` handed the API an empty string, which the
   Python client takes as a URL. Compose now passes it through only when set, and the API treats empty as unset.
 
+### Real browser clicks (15 Oct 2026, live models, Logfire on)
+
+Clicked by hand-equivalent automation in the user's Chrome (Claude in Chrome), not Playwright:
+
+| Run | Result |
+|---|---|
+| 1st click (trace `1e04166c…`) | **`workload_failure`** after 1.4 s: `UsageLimitExceeded`. The router's first Haiku response requested more than one tool call, which trips `tool_calls_limit=1`; nothing crossed MCP. The trace is complete and shows exactly that (ERROR root, 502, one model call, no MCP spans). Fixed with `ModelSettings(parallel_tool_calls=False)` → Anthropic `disable_parallel_tool_use` (`apps/api/src/api/agent.py`). |
+| Single click after the fix (run `c3a1619a…`, trace `dd9bb025…`) | 16/16 checks; 23 spans, 12 logs, 6.0 s; overlap 325 ms; `traceparent` sent `00-dd9bb025…-522e1ea335eb0820-01`, response `trace_id` identical. Same span set as the scripted twin plus 4 provider-HTTP spans; same 12 log records. Verifiable with only the run id: `demo verify --run c3a1619ad44e4e04a3df2c816fa7fa98`. |
+| Five tabs clicked within 0.73 s | 83/83 checks (16×5 + 3 cross-run): 5 distinct traces, 0 cross-trace parents, 1 API request + 1 MCP call per trace; 5 in flight at once at API, MCP server and analyst; 22 or 23 spans (Npgsql `CONNECT` only on new pooled connections), 12 logs each. |
+| One click with content capture on (trace `5eaa8946…`) | conversation panels in Logfire (screenshots in the article); capture switched back off afterwards. |
+
+In-page request/response capture used a read-only `window.fetch` wrapper installed after telemetry init; it records
+what the instrumented fetch sends and receives and creates no spans or headers.
+
 ### Logfire observations (same trace, inspected in the Logfire UI, EU region)
 
 ![Logfire waterfall of the live trace](article/img/logfire-live-waterfall.png)

@@ -194,6 +194,10 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 def cmd_verify(args: argparse.Namespace) -> int:
     manifest = Path(args.manifest) if args.manifest else EVIDENCE / "runs" / (f"{args.run}.json" if args.run else "latest.json")
+    if args.run and not manifest.exists():
+        # A click made by hand has no Playwright manifest; the run id alone finds its browser root span.
+        manifest.parent.mkdir(parents=True, exist_ok=True)
+        manifest.write_text(json.dumps({"schema_version": 1, "kind": "single", "source": "manual click", "run_id": args.run}), encoding="utf-8")
     return assert_traces(manifest, args.profile)
 
 

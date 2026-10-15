@@ -1,8 +1,12 @@
 # One Click, Two Agents, Three Runtimes: Can OpenTelemetry Keep the Thread?
 
-*Draft. Every number below comes from raw OTLP evidence captured by the repository's Collector on the pinned stack
-in [docs/compatibility.md](../compatibility.md). Logfire screenshots come from the one live run and are cropped to
-exclude account details and MCP session ids.*
+*Draft. The running example is a real click: a person-style click in Chrome on the demo page, with live Anthropic
+models (`claude-haiku-5-5`) in both agents, exported through one Collector to Logfire. Every number comes from the
+raw OTLP evidence the Collector wrote for that click, checked by the repository's assertion tool. Two things are
+deliberately automated and labelled as such: the break/repair laboratory (section 7) and the 20-way stress test
+(end of section 6). They use the same stack with scripted models, so they are deterministic and free to repeat.
+Screenshots are cropped to exclude account details and MCP session ids. Pinned versions are in
+[docs/compatibility.md](../compatibility.md).*
 
 ## 1. The wager
 
@@ -15,19 +19,18 @@ non-root span's parent exists in the captured trace, the parents are the *right*
 measurably overlap under the tool that launched them. A shared backend, matching service names or a common
 request id do not count — the Collector forwards; it does not repair parents.
 
-## 1b. The button
+## 2. The click
 
-The whole experiment starts from one deliberately plain page: a question, a product, a destination zone, and
-*Submit*. The header line shows which scenario and model mode the backend is running, read from `GET /api/config`
-when the page loads.
+The page is deliberately plain: a question, a product, a destination zone, and *Submit*. The header line shows
+the backend's scenario and model mode, read from `GET /api/config` when the page loads.
 
 | Before | After one click |
 |---|---|
 | ![The demo page](img/ui-start.png) | ![The answer, the evidence and the ids](img/ui-result.png) |
 
-The answer comes back with the structured evidence it was built from (stock from PostgreSQL, the quote from the
-shipping service) and two ids: the server-generated `run_id` and the `trace_id`. The trace id is for diagnostics
-only and grants no access to anything.
+The answer is Haiku's own sentence, and below it is the structured evidence it was built from: stock from
+PostgreSQL and the quote from the shipping service. Then come two ids, the server-generated `run_id` and the
+`trace_id`. The trace id is for diagnostics only and grants no access to anything.
 
 In the browser's network log the click is **one** application request. The telemetry SDK then adds two
 same-origin exports once the interaction span has ended:
@@ -38,45 +41,30 @@ POST /telemetry/v1/traces   200   OTLP export via the gateway (not traced itself
 POST /telemetry/v1/logs     200   OTLP export via the gateway (not traced itself)
 ```
 
-The request carries the business payload and, added by the fetch instrumentation, one `traceparent` header:
+What the page sent, recorded in the page as the instrumented `fetch` sent it (headers the browser adds itself,
+like `Accept` or `Origin`, are left out):
 
 ```http
-POST /api/ask HTTP/1.1
-Host: 127.0.0.1:5173
-Content-Type: application/json
-X-Demo-Canary: CANARY-HEADER-e620
-traceparent: 00-fdb5f299a4f3d6b56234bb8a1c803361-fff037090c5a4cea-01
+POST /api/ask
+content-type: application/json
+x-demo-canary: CANARY-HEADER-e620
+traceparent: 00-dd9bb025dc5fd828838d67e0c66118e7-522e1ea335eb0820-01
 
-{"message": "Can I get the demo lantern delivered to DEMO-NORTH?", "product_code": "DEMO-LANTERN", "destination_zone": "DEMO-NORTH"}
+{"message":"Can I get the demo lantern delivered to DEMO-NORTH?","product_code":"DEMO-LANTERN","destination_zone":"DEMO-NORTH"}
 ```
 
-(The `traceparent` value above is read back from the trace: the API's server span records
-`fff037090c5a4cea`, the browser's `POST` span, as its parent, and that parent can only have come from this header.
-`X-Demo-Canary` is a privacy canary: a header value that must never appear in telemetry.)
+The application code sets the first two headers. The fetch instrumentation adds `traceparent`: trace id
+`dd9bb025…` and parent `522e1ea335eb0820`, which is the browser's `POST` span. The `01` flag means sampled,
+which is why every backend span is recorded too. There is no `tracestate` and no `baggage`; the browser uses
+the W3C trace-context propagator only. `x-demo-canary` is a privacy canary: a header value that must never
+appear in telemetry, and it doesn't.
 
-Chrome DevTools for another click shows the same thing first-hand: three requests (`ask`, `traces`, `logs`), and
-on `ask` a single `traceparent`, `00-665bfde18a480568fbf34769b00fd9bc-f504c61ff2a45cca-01`. The `01` flag
-means sampled, which is why every backend span is recorded too. There is no `tracestate` and no `baggage`; the
-browser uses the W3C trace-context propagator only. The *Payload* tab shows just the three business fields
-(`message`, `product_code`, `destination_zone`), with no tracing data in the body. The *Response* tab for the same
-click returns `"trace_id": "665bfde18a480568fbf34769b00fd9bc"`, the trace id the browser put in the header.
-
-![Chrome DevTools: the ask request and its traceparent header](img/devtools-ask-headers.png)
-
-DevTools also shows something we didn't expect. The redacted `Cookie` row is a session cookie from a *different*
-local app on `127.0.0.1:3080`. Browsers scope cookies by host, not port, so it rides along to the demo. It never
-reached telemetry: no instrumentation here records request headers, and the canary checks found nothing. But
-the gateway originally stripped `Cookie` only on the telemetry routes and forwarded it to `/api`, the kind of
-accidental data flow this project is meant to make visible. The fix was two lines moved up a level: the gateway
-now drops `Cookie` and `Authorization` for every proxied route. Checked against echo upstreams, the API now
-receives `traceparent` but no `cookie` or `authorization`, and the baseline trace contract still passes.
-
-The response, verbatim:
+What came back, verbatim:
 
 ```json
 {
-  "run_id": "57a7d6fab0bc41938ed946d4c456c96e",
-  "answer": "Scripted router answer from the availability report. CANARY-COMPLETION-3d7a",
+  "run_id": "c3a1619ad44e4e04a3df2c816fa7fa98",
+  "answer": "Yes, the demo lantern is available for delivery to DEMO-NORTH, with 12 units on hand at DEMO-WH-1. DEMO-CARRIER quotes 12.00 EUR shipping with an estimated arrival in 2 days.",
   "evidence": {
     "product_code": "DEMO-LANTERN",
     "destination_zone": "DEMO-NORTH",
@@ -91,56 +79,77 @@ The response, verbatim:
       "eta_days": 2,
       "reference": "CANARY-SHIPREF-5b1e"
     },
-    "summary": "DEMO-LANTERN: 12 on hand at DEMO-WH-1; ships to DEMO-NORTH in 2 days. CANARY-ANALYST-0f2b"
+    "summary": "DEMO-LANTERN is available for DEMO-NORTH: 12 units on hand at DEMO-WH-1. DEMO-CARRIER quotes 1200 EUR cents (12.00 EUR) with an ETA of 2 days."
   },
-  "trace_id": "fdb5f299a4f3d6b56234bb8a1c803361",
+  "trace_id": "dd9bb025dc5fd828838d67e0c66118e7",
   "scenario": "baseline",
-  "mode": "scripted"
+  "mode": "live"
 }
 ```
 
-The `trace_id` in the response is the one in the request's `traceparent`: the API joined the browser's trace and did
-not start its own. Everything else in this article happens between that request and that response.
+The response's `trace_id` is the one in the request's `traceparent`. The API joined the browser's trace instead
+of starting its own. Everything else in this article happens between that request and that response.
 
-## 2. The first waterfall
+Chrome DevTools on an earlier click shows the full header set the browser actually transmits: the same three
+requests (`ask`, `traces`, `logs`) and one `traceparent` of the same shape. It also showed something we didn't
+expect:
 
-The deterministic mode swaps each framework's model for a scripted one at its model abstraction (a Pydantic AI
-`FunctionModel`, an `IChatClient` for MAF). The agent loops, MCP transport, SQL and HTTP are all real. One
-Playwright-driven click produced 19 spans across four services:
+![Chrome DevTools: the ask request and its traceparent header](img/devtools-ask-headers.png)
+
+The redacted `Cookie` row is a session cookie from a *different* local app on `127.0.0.1:3080`. Browsers scope
+cookies by host, not port, so it rides along to the demo. It never reached telemetry: no instrumentation here
+records request headers, and the canary checks found nothing. But the gateway originally stripped `Cookie` only on
+the telemetry routes and forwarded it to `/api`, the kind of accidental data flow this project is meant to make
+visible. The fix was two lines moved up a level: the gateway now drops `Cookie` and `Authorization` for every
+proxied route. Checked against echo upstreams, the API receives `traceparent` but no `cookie` or `authorization`.
+
+## 3. The waterfall
+
+That click produced **23 spans across four services, in one trace**, and 12 log records, each attached to the span
+that was active when it was written. The whole thing took 6.0 s:
 
 ```text
-web    ui.ask                                          811 ms
-web    └ POST                                          810 ms   fetch instrumentation
-api      └ POST /api/ask                               805 ms   FastAPI
-api        └ invoke_agent request-router               781 ms   Pydantic AI
-api          ├ chat scripted-router                     15 ms
-api          ├ execute_tool build_availability_report  761 ms
-api          │ └ MCP send tools/call build_avail…      709 ms   mcp SDK  — params._meta
-api          │   ├ POST                                709 ms   httpx2 hook — traceparent header
-worker       │   │ └ POST /mcp/                        705 ms   ASP.NET Core
-worker       │   └ tools/call build_availability_report 701 ms  MCP C# SDK (link → POST /mcp/)
-worker       │     └ invoke_agent availability-analyst 582 ms   MAF
-worker       │       ├ chat scripted-analyst             5 ms
-worker       │       ├ execute_tool lookup_availability 546 ms
-worker       │       │ ├ postgresql                    321 ms   Npgsql   ┐ 321 ms overlap
-worker       │       │ └ GET                           510 ms   HttpClient┘
-shipping     │       │   └ GET /quotes/{zone}          502 ms
-worker       │       └ chat scripted-analyst             3 ms
-api          └ chat scripted-router                      1 ms
+web      ui.ask                                         6021 ms   app span: the interaction
+web      └ POST                                         6019 ms   fetch instrumentation
+api        └ POST /api/ask                              6012 ms   FastAPI (header parent)
+api          └ invoke_agent request-router              6006 ms   Pydantic AI
+api            ├ chat claude-haiku-5-5                  1127 ms   model call 1: decides to call the tool
+api            │ └ anthropic.messages.create            1107 ms   Anthropic Python SDK's own span
+api            ├ execute_tool build_availability_report 3899 ms
+api            │ └ MCP send tools/call build_avail…     3849 ms   mcp SDK — params._meta parent
+api            │   ├ POST                               3848 ms   httpx2 hook — traceparent header
+worker         │   │ └ POST /mcp/                       3847 ms   ASP.NET Core
+worker         │   └ tools/call build_availability_report 3844 ms MCP C# SDK (link → POST /mcp/)
+worker         │     └ invoke_agent availability-analyst 3729 ms  MAF
+worker         │       ├ chat claude-haiku-5-5          1522 ms   model call 2
+worker         │       │ └ POST                         1377 ms   HttpClient → api.anthropic.com
+worker         │       ├ execute_tool lookup_availability 540 ms
+worker         │       │ ├ CONNECT demo                   66 ms   Npgsql, first use of a pooled connection
+worker         │       │ ├ GET                           504 ms   HttpClient ┐ 325 ms overlap
+shipping       │       │ │ └ GET /quotes/{zone}          502 ms   FastAPI    │
+worker         │       │ └ postgresql                    325 ms   Npgsql     ┘
+worker         │       └ chat claude-haiku-5-5          1634 ms   model call 3: writes the report
+worker         │         └ POST                         1626 ms
+api            └ chat claude-haiku-5-5                   973 ms   model call 4: writes the answer
+api              └ anthropic.messages.create             971 ms
 ```
 
-The same shape in Logfire, from the live-model run with logs and span events filtered out — 23 spans, four
-services, one tree. The extra rows against the scripted tree are real model traffic: each `chat claude-haiku-5-5`
-span now has an HTTP child (`anthropic.messages.create` from the Anthropic Python SDK, `POST` from .NET's
-`HttpClient`), and the model calls dominate the 9.5 s while the SQL/HTTP pair is the short stack at 11:01:32:
+The same trace in Logfire, with logs and span events filtered out:
 
-![The live trace in Logfire, spans only](img/logfire-live-spans-only.png)
+![The real click in Logfire, spans only](img/logfire-real-click-spans.png)
 
-The assertion tool (`scripts/assert-traces.py`) checks sixteen relationships on that graph and passes. Twenty
-simultaneous clicks over the API's single long-lived MCP client produced twenty distinct traces, each with exactly
-one API request and one MCP operation, and zero spans parented into another submission's trace (section 6).
+`scripts/assert-traces.py` checks sixteen relationships on this graph against the raw Collector file, and all
+sixteen pass. Browser→API and Python→.NET are each correct direct HTTP pairs. The .NET MCP operation's parent is
+the Python MCP span. Each agent is an ancestor of its tool work. SQL and HTTP share the tool as parent and
+overlap. Every layer logged inside a span. No canary leaked, and no telemetry export was itself traced.
 
-## 3. The boundary ledger
+The repository also has a deterministic twin of this run, with scripted models injected at each framework's model
+abstraction, for CI and for the laboratory. Compared with the real click, its trace has the identical set of
+spans, minus the four that represent real provider traffic (two `anthropic.messages.create`, two `POST`s to
+`api.anthropic.com`). It has the same 12 log records and the same ≈325 ms overlap. Nothing in the tracing
+depends on whether the model is real.
+
+## 4. The boundary ledger
 
 | Hop | Who creates the span | Who injects | Carrier | Who extracts |
 |---|---|---|---|---|
@@ -156,15 +165,16 @@ header on `POST /mcp`. Installing the familiar `opentelemetry-instrumentation-ht
 all — it patches a library the MCP client no longer uses. We closed the gap with one transport wrapper with a
 written removal condition ([ADR 0001](../decisions/0001-httpx2-transport-hook.md)).
 
-## 4. The MCP surprise: two carriers, two parents
+## 5. The MCP surprise: two carriers, two parents
 
 The MCP message and its HTTP request carry **the same trace id with different parent span ids**. The `_meta`
 carrier names the logical `MCP send` span; the header names the HTTP client span nested under it. The C# SDK
 parents its `tools/call` server span to the message carrier and *links* it to the ASP.NET request span. So in the
-waterfall the .NET MCP operation is a sibling of the HTTP request, not its grandchild. That is the intended
-"message-first" graph, and it is why the checks test relationships, not indentation.
+waterfall above the .NET MCP operation is a sibling of the HTTP request, not its grandchild. That is the intended
+"message-first" graph, and it is why the checks test relationships, not indentation. Logfire shows the link as an
+icon on the `tools/call` row and lists `POST /mcp/` under *Related spans*.
 
-Removing one carrier at a time shows they are independent:
+The laboratory (scripted models) removes one carrier at a time to show they are independent:
 
 - **Headers removed:** the ASP.NET span roots a brand-new trace, yet the MCP operation and everything below it
   stays in the browser's trace via `_meta` — and its link now points *across* traces.
@@ -172,10 +182,10 @@ Removing one carrier at a time shows they are independent:
   becomes the ASP.NET span. Nothing looks broken in a waterfall; only the parent-id check notices.
 - **Both removed:** every .NET span lands in one separate trace.
 
-Here is the headers-removed break as Logfire shows it (scripted run, so no model spend). At first glance the trace
-looks complete: every logical span is there, the .NET agent, the tool, SQL and HTTP all nest under the Python MCP
-call. The only visible damage is that the Python transport span `POST → 200` is now a **leaf**; in the baseline it
-had the .NET `POST /mcp/` under it. 18 spans instead of 19.
+Here is the headers-removed break as Logfire shows it. At first glance the trace looks complete: every logical
+span is there, the .NET agent, the tool, SQL and HTTP all nest under the Python MCP call. The only visible damage is
+that the Python transport span `POST → 200` is now a **leaf**; in the baseline it had the .NET `POST /mcp/` under
+it.
 
 ![headers-removed in Logfire: the transport span has no child](img/logfire-headers-removed-trace.png)
 
@@ -185,55 +195,60 @@ baseline:
 ![The link panel is identical to the baseline](img/logfire-headers-removed-link.png)
 
 Only following the link shows the split: it opens a different trace containing a single root span — the ASP.NET
-request, 791 ms, nothing above it and nothing below it. Its user agent (`python-httpx2/2.13.1`) is the only
-remaining hint of where it came from.
+request, nothing above it and nothing below it. Its user agent (`python-httpx2/2.13.1`) is the only remaining hint
+of where it came from.
 
 ![The orphaned HTTP server span, alone in its own trace](img/logfire-headers-removed-orphan.png)
 
 That is the argument for asserting on parent ids rather than eyeballing waterfalls: a lost transport carrier
-removes one row from a 19-row tree and adds a one-span trace somewhere else in the project.
+removes one row from the tree and adds a one-span trace somewhere else in the project.
 
 Both SDKs also behaved well with hostile input: garbage, truncated, all-zero and version-`ff` `_meta` values were
 discarded (the operation fell back to its HTTP parent), an all-zero header produced a fresh root, and conflicting
 header/`_meta` trace ids were never merged — each SDK honoured its own carrier, joined only by the link.
 
-## 5. Two branches at once
+## 6. Two branches at once — and five clicks at once
 
 `lookup_availability` starts the SQL query and the HTTP quote while its span is current, then awaits
 `Task.WhenAll`. The fixture delay lives *inside* each operation (a `pg_sleep` in a materialized CTE; a sleeping
-stub), so the leaf spans show real work.
+stub), so the leaf spans show real work. In the real click:
 
 | Variant | SQL span | HTTP span | Overlap | Tool span |
 |---|---|---|---|---|
-| parallel (baseline) | 321 ms | 510 ms | **321 ms** | 546 ms (≈ max) |
-| serial (`await` SQL first) | 320 ms | 512 ms | **−3.7 ms** | 943 ms (≈ sum) |
+| parallel — the real click | 325 ms | 504 ms | **325 ms** | 540 ms (≈ max) |
+| serial (`await` SQL first) — laboratory | 320 ms | 512 ms | **−3.7 ms** | 943 ms (≈ sum) |
 
 Both spans come from the same .NET clock, so the overlap is a safe hard assertion; the cross-host comparisons in
-this project use ids only.
+this project use ids only. The one way we found to *lose* a branch was to create it without the ambient
+`ExecutionContext` (`SuppressFlow()` + a yield): the HTTP client span and the stub's server span moved to a new
+trace while the SQL branch stayed put. `ConfigureAwait(false)` alone does no such thing.
 
-The one way we found to *lose* a branch was to create it without the ambient `ExecutionContext`
-(`SuppressFlow()` + a yield): the HTTP client span and the stub's server span moved to a new trace while the SQL
-branch stayed put. `ConfigureAwait(false)` alone does no such thing.
+The other kind of concurrency is between requests. Everything below the browser is shared: one FastAPI process,
+one long-lived Pydantic AI MCP client with one httpx2 client and transport hook, one .NET worker with one Npgsql
+pool and one `HttpClient`. If any of them kept trace context in shared state — a `traceparent` stored on a
+client's default headers at startup is the classic mistake — later requests would become children of an earlier
+one.
 
-## 6. Twenty clicks at once
+So we opened the page in **five Chrome tabs** and clicked *Submit* in each, one after another. The five clicks
+spanned 0.73 s and each request took 5.0–6.4 s with live models, so all five were in flight together. Measured
+from the spans, five requests were active at the same moment at the FastAPI server, at the .NET MCP server and
+inside the .NET agent. Logfire shows five `ui.ask` roots, each its own trace:
 
-One click producing one trace proves little if two clicks at the same moment can tangle. Everything below the
-browser is shared: one FastAPI process, one long-lived Pydantic AI MCP client with one httpx2 client and transport
-hook, one .NET worker with one Npgsql connection pool and one `HttpClient`. If any of them kept trace context in
-shared state — a `traceparent` stored on the client's default headers at startup is the classic mistake — later
-requests would become children of an earlier one.
+![Five tabs, five clicks, five separate traces](img/logfire-real-5tabs.png)
 
-So Playwright opens twenty separate browser contexts, fills in all twenty forms, and submits them together. The
-burst was real concurrency, not a queue: measured from the spans, **all twenty requests were in flight at the
-same moment** at the FastAPI server, at the .NET MCP server, and inside the local tool. Their first records
-landed within 118 ms of each other, and the whole burst finished in 1.6 s (median request 1.5 s against roughly
-0.9 s for a lone click — the contention is visible, the bleeding is not).
+Every tab's response returned the trace id that tab had sent in its `traceparent`. On the raw evidence all 16
+per-trace checks passed for each of the five, plus three cross-run checks: five distinct trace ids, **zero spans
+parented into another click's trace**, and exactly one API request and one MCP operation per trace. Each trace
+has the same 12 log records. Three have 23 spans and two have 22: the difference is Npgsql's `CONNECT` span,
+which appears only when a request has to open a new pooled connection.
 
-In Logfire that is twenty `ui.ask` roots side by side, each a separate trace with the same 40 descendants:
+Nothing here needed special handling. Every carrier is built per request from the span that is current at that
+moment: the httpx2 hook builds a fresh header carrier for each request, the mcp SDK injects `_meta` per message,
+and .NET flows `ExecutionContext` per request. The long-lived client only carries connections.
 
-![Twenty concurrent submissions, twenty separate traces](img/logfire-concurrency-roots.png)
-
-Logfire's SQL Workbench gives the same answer per trace:
+**The stress version (automated, scripted models).** Playwright opens twenty browser contexts and submits all
+twenty within 118 ms. All twenty requests were in flight at once at every layer, and the result is the same: twenty
+traces, 320 per-trace checks passing, zero cross-trace parents. Logfire's SQL Workbench confirms it per trace:
 
 ```sql
 SELECT trace_id,
@@ -251,20 +266,12 @@ ORDER BY first_record
 
 ![Per-trace summary in Logfire: every trace has exactly one of everything](img/logfire-concurrency-sql.png)
 
-Twenty rows, all identical: 41 records (19 spans, 12 log records, 10 span events), 4 services, exactly one API
-request, one MCP tool call and one SQL query. A bleed would show up here as a trace with two MCP calls and
-another with none.
+All twenty rows are identical, with exactly one API request, one MCP tool call and one SQL query each. A bleed
+would show up as one trace with two MCP calls and another with none.
 
-The authoritative check runs on the raw Collector file rather than a UI. `assert-traces.py` ran all sixteen
-per-trace checks on each of the twenty traces — 320 passes — plus three cross-run checks: twenty distinct trace
-ids, **zero spans parented into another submission's trace**, and exactly one API request and one MCP operation
-per trace. Nothing here needed special handling. Every carrier is built per request from the span that is current
-at that moment: the httpx2 hook builds a fresh header carrier for each request, the mcp SDK injects `_meta`
-per message, and .NET flows `ExecutionContext` per request. The long-lived client only carries connections.
+## 7. Break it on purpose — and one break we didn't plan
 
-## 7. Break it on purpose
-
-Eight break/repair pairs ran on the same stack, each changing one variable, each with an expected failing check,
+Eight break/repair pairs ran in the laboratory, each changing one variable, each with an expected failing check,
 a minimal repair and a passing rerun ([experiments/](../../experiments/README.md)). Three are worth separating:
 
 - **Missing propagation** (`both-removed`, `context-detached`): spans exist, but in *another* trace. The tool
@@ -276,58 +283,77 @@ a minimal repair and a passing rerun ([experiments/](../../experiments/README.md
   stays UNSET (the JSON-RPC exchange succeeded), while Python's `execute_tool` and the .NET MCP operation are
   ERROR with `error.type=tool_error`. If your dashboard only colours HTTP errors, this request looks healthy.
 
+The break we didn't plan came from a real model. The very first live click of the final validation failed after
+1.4 s with `workload_failure`. Its trace was complete and honest. There was an ERROR `ui.ask` and an ERROR `POST`
+with status 502, and under the router agent sat a single model call whose finish reason was `tool_call`. There were
+no MCP spans at all. The API's `ask completed` log record named the cause, `UsageLimitExceeded`. At that point in
+the run, that limit trips only if a single model response asks for **more than one tool call**. Haiku had requested
+the one allowed tool in parallel, and `tool_calls_limit=1` stopped it before anything crossed MCP. The fix was the provider's tool-choice control. Pydantic AI's `parallel_tool_calls=False` becomes
+Anthropic's `disable_parallel_tool_use`. The next seven real clicks all succeeded. The spec had predicted this
+("tool invocation is nondeterministic unless the provider supports the required tool-choice control"); now there
+is a trace of it.
+
 ## 8. Same trace, different vocabulary
 
-The two agent frameworks agree on `invoke_agent`, `chat` and `execute_tool`, and on little else: Pydantic AI's
-agent span is INTERNAL, MAF's is CLIENT; Pydantic AI's scripted model reports *estimated* token usage (we tag
-those spans `demo.model.synthetic=true`), M.E.AI's reports none; FastAPI's instrumentation still emits the old
-HTTP attribute names while ASP.NET Core emits the stable ones; Npgsql 10 already uses `db.query.text`. We kept
-the raw attributes and wrote a comparison table instead of normalising evidence
-([compatibility.md](../compatibility.md#observed-python-vs-net-differences-same-trace-different-vocabulary)).
+The two agent frameworks agree on `invoke_agent`, `chat` and `execute_tool`, and on little else. Pydantic AI's
+agent span is INTERNAL; MAF's is CLIENT. Logfire displays Pydantic AI spans under friendlier names
+(`request-router run`, `running tool: …`), while .NET spans keep their OTLP names. Finish reasons come as an array
+(`['tool_call']`) from one SDK and as a JSON string (`"[\"tool_calls\"]"`) from the other. FastAPI's
+instrumentation still emits the old HTTP attribute names, while ASP.NET Core emits the stable ones, and Npgsql 10
+already uses `db.query.text`. We kept the raw attributes and wrote a comparison table instead of normalising the
+evidence ([compatibility.md](../compatibility.md#observed-python-vs-net-differences-same-trace-different-vocabulary)).
 
-Content capture is off in both frameworks by default. Turning it on leaked four of our five canaries — prompt,
-completion, the .NET agent's summary, and a shipping reference that only ever travels inside tool results — into
-span attributes. The header canary never appeared in either setting.
+Tokens show the vocabulary problem in money terms. The real click's four model calls used **4,536 input and 517
+output tokens** (627/92 and 969/86 for the router, 1,334/94 and 1,606/245 for the analyst). Logfire's roll-up badge
+on the root reads 5,870 / 611. MAF reports the agent's *aggregate* usage on `invoke_agent` under the same
+`gen_ai.usage.*` keys its model spans use, so summing spans counts part of it twice. Pydantic AI uses
+`gen_ai.aggregated_usage.*` and doesn't collide.
 
-With capture on, Logfire turns the same attributes into readable conversations — and shows the vocabulary gap
-again: the Python agent span opens as an *Agent Run*, the .NET agent span (a CLIENT span with model attributes)
-as a *Model Run*:
+Content capture is off in both frameworks by default; the laboratory's `privacy` experiment shows that turning it
+on leaks prompt, completion, tool-result and summary canaries into span attributes, while the header canary never
+appears in either setting. With capture switched on for one real click, Logfire turns the same attributes into
+readable conversations and shows the gap again. The Python agent span opens as an *Agent Run*; the .NET agent
+span, a CLIENT span with model attributes, opens as a *Model Run*:
 
 | Python `request-router` | .NET `availability-analyst` |
 |---|---|
 | ![](img/logfire-content-router.png) | ![](img/logfire-content-analyst.png) |
 
 No telemetry content crosses the MCP boundary: the tracing part of `_meta` is just `traceparent`. The two
-conversations are joined by trace ids, not by copying captured content between runtimes.
+conversations are joined by trace ids, not by copying captured content between runtimes. Capture was switched back
+off right after that click.
 
 ## 9. Results and limits
 
-Continuity held across every boundary — but one boundary only after we wrote the instrumentation the ecosystem
-does not yet ship. With real Anthropic models (`claude-haiku-5-5` in both agents) the same contract passed: one
-trace of 23 spans, ≈9.5 s end to end, four model calls (≈4.6k input / 0.6k output tokens), and the Collector
-fanned out to Logfire without export errors. Live mode also exposed two things scripted mode cannot: the
-Anthropic Python SDK now traces itself by default, adding a second model span under Pydantic AI's, and MAF reports
-the agent's *aggregate* usage under the same `gen_ai.usage.*` keys as its model spans — sum every span and you
-double-count.
+Continuity held across every boundary of a real click, but only after we wrote the instrumentation for the one
+boundary the ecosystem does not yet cover. One click is one trace: 23 spans, four services, every parent correct,
+the two I/O branches overlapping by 325 ms, and five simultaneous clicks staying five separate traces. Live models
+added two things scripted ones never showed. The Anthropic Python SDK now traces itself by default, adding a second
+span under each Pydantic AI model call, and a model can decide to call a tool twice at once.
 
-In Logfire the live run is one waterfall across all four services, with the .NET MCP span's link to its HTTP
-request listed under *Related spans*, and both agents picked up on the Agents page:
-
-![The live trace in Logfire](img/logfire-live-waterfall.png)
-
-Three things the UI adds that raw OTLP does not show: Pydantic AI spans are displayed under friendlier names
-(`request-router run`, `running tool: …`) while .NET spans keep their OTLP names; the root's token badge reads
-5,892 in / 735 out for model calls that total 4,558 / 641 — the MAF usage-key collision, now on screen; and .NET
-log lines appear as unformatted message templates. The SQL/HTTP overlap is real in Logfire's stored timestamps
-(326.6 ms, identical to the Collector file) but too small to see at the scale of a 9.5-second trace.
+Logfire agreed with the raw evidence on every structural point: one waterfall across four services, the MCP link,
+both agents on its Agents page, and span durations that match the Collector file to the millisecond. Three of its display choices need
+care. Its token roll-up double-counts MAF usage. .NET log lines appear as unformatted message templates, because
+the OTLP log body is the template. And a 325 ms overlap is invisible at the scale of a 6-second trace, so assert it
+rather than eyeball it.
 
 What we did not verify: cross-origin CORS behaviour, sampling, and clock skew beyond "never compare timestamps
-across hosts". Browser export is best effort: the fetch
-instrumentation ends its span about 300 ms after the response, so flushing right after rendering silently drops
-it — the app waits for open spans before flushing. In the browser, ambient context did **not** survive a single
-`await` in any run; the app re-enters context explicitly.
+across hosts". Browser export is best effort: the fetch instrumentation ends its span about 300 ms after the
+response, so flushing right after rendering silently drops it, and the app waits for open spans before flushing.
+In the browser, ambient context did **not** survive a single `await` in any recorded run; the app re-enters
+context explicitly.
 
 ## 10. Reproduce it
+
+The real-world path, with an Anthropic key and a Logfire write token in `.env`:
+
+```bash
+./scripts/demo.sh up --mode live --logfire
+# open http://127.0.0.1:5173, click Submit, copy the run id from the page
+./scripts/demo.sh verify --run <run_id>
+```
+
+The laboratory, deterministic and offline:
 
 ```bash
 ./scripts/demo.sh up --mode scripted
@@ -336,12 +362,11 @@ it — the app waits for open spans before flushing. In the browser, ambient con
 ./scripts/demo.sh experiment all && ./scripts/demo.sh probe-carriers
 ```
 
-Pinned versions, lockfile hashes and every observed behaviour: [docs/compatibility.md](../compatibility.md).
-
 | Hypothesis | Observation | Explanation | Fix |
 |---|---|---|---|
 | MCP keeps the trace across Python → .NET | yes for the message, **no HTTP header** | MCP client moved to httpx2; no instrumentor exists | one transport hook (ADR 0001) |
 | One carrier is enough | `_meta`-only keeps the logical chain; header-only keeps the trace but re-parents | message-first SDK design, HTTP fallback | keep both |
-| `await` keeps browser context | never (0/37 recorded runs) | zone.js cannot patch native async/await | start fetch synchronously, re-enter explicitly |
+| `await` keeps browser context | never, in any recorded run | zone.js cannot patch native async/await | start fetch synchronously, re-enter explicitly |
 | `Task.WhenAll` branches stay parented | yes, unless flow is suppressed | `ExecutionContext` flows into tasks | none needed |
-| Shared MCP client is safe under load | 20/20 isolated | per-request carriers, no default headers | none needed |
+| Shared MCP client is safe under load | 5/5 real tabs, 20/20 automated: isolated | per-request carriers, no default headers | none needed |
+| A live model follows the one-tool plan | not always: one click asked for two parallel tool calls | nondeterministic tool use | `parallel_tool_calls=False` |
