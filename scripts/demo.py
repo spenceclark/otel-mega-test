@@ -157,7 +157,10 @@ def run_e2e(scenario: str) -> Path:
     data = json.loads(manifest.read_text(encoding="utf-8"))
     data["mode"], data["git_sha"] = state["mode"], git_sha()
     data["scenario"] = scenario
-    manifest.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    # The Playwright container writes as root; replacing (not rewriting) the file needs only directory access.
+    tmp = manifest.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    os.replace(tmp, manifest)
     say(f"manifest: {manifest.relative_to(ROOT)}")
     return manifest
 

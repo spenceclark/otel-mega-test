@@ -1,22 +1,22 @@
 {
   "schema_version": 1,
   "experiment": "privacy",
-  "git_sha": "5c38f61",
+  "git_sha": "edbf578",
   "mode": "scripted",
-  "recorded_at": "20261015T003827Z",
+  "recorded_at": "20261015T005036Z",
   "hypothesis": "Default telemetry carries no prompt, completion, tool result or header content; enabling content capture leaks canaries.",
   "fault": "DEMO_CONTENT_CAPTURE=true enables GenAI message/tool content capture in both frameworks.",
   "fix": "DEMO_CONTENT_CAPTURE=false (default).",
   "expected_graph": "Unchanged graph; canary strings appear in span attributes/events.",
   "broken": {
-    "run_id": "4144b580bd2d484aabf5ee3172194545",
-    "api_trace_id": "fa82eca27659f59727a384a7bf7acb7a",
+    "run_id": "9fe7fed0c5094298bdd4864c9a328f4e",
+    "api_trace_id": "2df09b326f0045565bc95189161533f5",
     "outcome": "ok",
     "expectations_met": true,
     "checks": {
       "browser-root": {
         "ok": true,
-        "detail": "ui.ask f55a5531420ea5b4 trace fa82eca27659f59727a384a7bf7acb7a parent=none"
+        "detail": "ui.ask 3921b2f7b5026e86 trace 2df09b326f0045565bc95189161533f5 parent=none"
       },
       "required-spans": {
         "ok": true,
@@ -32,23 +32,23 @@
       },
       "browser-client->api-server": {
         "ok": true,
-        "detail": "api server parent=cef8f685b73ba756 web client=cef8f685b73ba756"
+        "detail": "api server parent=7cfa33b8d7604db1 web client=7cfa33b8d7604db1"
       },
       "api-http-client->worker-http-server": {
         "ok": true,
-        "detail": "worker HTTP server trace-demo-worker:'POST /mcp/'(05375527ec377de2) in trace fa82eca27659f59727a384a7bf7acb7a; parent=trace-demo-api:'POST'(9fdeb960d16f0040)"
+        "detail": "worker HTTP server trace-demo-worker:'POST /mcp/'(2e524801d25e53de) in trace 2df09b326f0045565bc95189161533f5; parent=trace-demo-api:'POST'(2afb20309abe822a)"
       },
       "mcp-message-parent": {
         "ok": true,
-        "detail": "MCP server parent=trace-demo-api:'MCP send tools/call build_availability_report'(20ffee68185eaa55) expected=trace-demo-api:'MCP send tools/call build_availability_report'(20ffee68185eaa55)"
+        "detail": "MCP server parent=trace-demo-api:'MCP send tools/call build_availability_report'(dc0663e9a8a1064d) expected=trace-demo-api:'MCP send tools/call build_availability_report'(dc0663e9a8a1064d)"
       },
       "mcp-http-link": {
         "ok": true,
-        "detail": "MCP server links=[('fa82eca27659f59727a384a7bf7acb7a', '05375527ec377de2')] -> trace-demo-worker:'POST /mcp/'(05375527ec377de2)"
+        "detail": "MCP server links=[('2df09b326f0045565bc95189161533f5', '2e524801d25e53de')] -> trace-demo-worker:'POST /mcp/'(2e524801d25e53de)"
       },
       "agent-ancestry": {
         "ok": true,
-        "detail": "router>trace-demo-api:'MCP send tools/call build_availability_report'(20ffee68185eaa55): True; MCP server>analyst: True; analyst>tool: True"
+        "detail": "router>trace-demo-api:'MCP send tools/call build_availability_report'(dc0663e9a8a1064d): True; MCP server>analyst: True; analyst>tool: True"
       },
       "io-under-tool": {
         "ok": true,
@@ -56,15 +56,15 @@
       },
       "io-overlap": {
         "ok": true,
-        "detail": "overlap=319.1ms tool_ends_after_both=True db=319.1ms http=513.1ms sum=832.2ms tool=550.4ms"
+        "detail": "overlap=322.7ms tool_ends_after_both=True db=322.7ms http=510.3ms sum=833.0ms tool=545.4ms"
       },
       "shipping-server-hop": {
         "ok": true,
-        "detail": "shipping server parent=8e843d9f2e5fad85 expected=8e843d9f2e5fad85"
+        "detail": "shipping server parent=08a1c695e2e7a2d7 expected=08a1c695e2e7a2d7"
       },
       "logs-correlated": {
         "ok": true,
-        "detail": "trace-demo-web=1, trace-demo-api=2, trace-demo-worker=2, trace-demo-shipping=1 log records attached to spans in the trace"
+        "detail": "trace-demo-web=1, trace-demo-api=2, trace-demo-worker=8, trace-demo-shipping=1 log records attached to spans in the trace"
       },
       "privacy-canaries": {
         "ok": false,
@@ -81,14 +81,14 @@
     }
   },
   "fixed": {
-    "run_id": "0d4ca774bbcb42bd9ae8ab66f7b99830",
-    "api_trace_id": "8f6c59e4fcbb980854ad315ec5957bb3",
+    "run_id": "1b9d0c6457264be188fada3587966aa5",
+    "api_trace_id": "3bd7ab35cba268c2a820629cbda7a696",
     "outcome": "ok",
     "expectations_met": true,
     "checks": {
       "browser-root": {
         "ok": true,
-        "detail": "ui.ask da92025681ea1346 trace 8f6c59e4fcbb980854ad315ec5957bb3 parent=none"
+        "detail": "ui.ask f49058a08255e3a8 trace 3bd7ab35cba268c2a820629cbda7a696 parent=none"
       },
       "required-spans": {
         "ok": true,
@@ -104,23 +104,23 @@
       },
       "browser-client->api-server": {
         "ok": true,
-        "detail": "api server parent=bdf24aabe7699293 web client=bdf24aabe7699293"
+        "detail": "api server parent=1668906925b1925e web client=1668906925b1925e"
       },
       "api-http-client->worker-http-server": {
         "ok": true,
-        "detail": "worker HTTP server trace-demo-worker:'POST /mcp/'(ab95ae8dad4799dc) in trace 8f6c59e4fcbb980854ad315ec5957bb3; parent=trace-demo-api:'POST'(07dca115892901cb)"
+        "detail": "worker HTTP server trace-demo-worker:'POST /mcp/'(b0d6e72b85a4f841) in trace 3bd7ab35cba268c2a820629cbda7a696; parent=trace-demo-api:'POST'(e497244ce374d8c7)"
       },
       "mcp-message-parent": {
         "ok": true,
-        "detail": "MCP server parent=trace-demo-api:'MCP send tools/call build_availability_report'(b3a12f954bc465ca) expected=trace-demo-api:'MCP send tools/call build_availability_report'(b3a12f954bc465ca)"
+        "detail": "MCP server parent=trace-demo-api:'MCP send tools/call build_availability_report'(a4d4f34936247659) expected=trace-demo-api:'MCP send tools/call build_availability_report'(a4d4f34936247659)"
       },
       "mcp-http-link": {
         "ok": true,
-        "detail": "MCP server links=[('8f6c59e4fcbb980854ad315ec5957bb3', 'ab95ae8dad4799dc')] -> trace-demo-worker:'POST /mcp/'(ab95ae8dad4799dc)"
+        "detail": "MCP server links=[('3bd7ab35cba268c2a820629cbda7a696', 'b0d6e72b85a4f841')] -> trace-demo-worker:'POST /mcp/'(b0d6e72b85a4f841)"
       },
       "agent-ancestry": {
         "ok": true,
-        "detail": "router>trace-demo-api:'MCP send tools/call build_availability_report'(b3a12f954bc465ca): True; MCP server>analyst: True; analyst>tool: True"
+        "detail": "router>trace-demo-api:'MCP send tools/call build_availability_report'(a4d4f34936247659): True; MCP server>analyst: True; analyst>tool: True"
       },
       "io-under-tool": {
         "ok": true,
@@ -128,15 +128,15 @@
       },
       "io-overlap": {
         "ok": true,
-        "detail": "overlap=320.1ms tool_ends_after_both=True db=320.1ms http=512.2ms sum=832.3ms tool=549.8ms"
+        "detail": "overlap=318.7ms tool_ends_after_both=True db=318.7ms http=511.1ms sum=829.8ms tool=543.6ms"
       },
       "shipping-server-hop": {
         "ok": true,
-        "detail": "shipping server parent=e2f1f9b701e196ad expected=e2f1f9b701e196ad"
+        "detail": "shipping server parent=18564aef909a1197 expected=18564aef909a1197"
       },
       "logs-correlated": {
         "ok": true,
-        "detail": "trace-demo-web=1, trace-demo-api=2, trace-demo-worker=8, trace-demo-shipping=1 log records attached to spans in the trace"
+        "detail": "trace-demo-web=1, trace-demo-api=2, trace-demo-worker=2, trace-demo-shipping=1 log records attached to spans in the trace"
       },
       "privacy-canaries": {
         "ok": true,

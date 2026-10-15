@@ -91,7 +91,7 @@ stub), so the leaf spans show real work.
 | Variant | SQL span | HTTP span | Overlap | Tool span |
 |---|---|---|---|---|
 | parallel (baseline) | 321 ms | 510 ms | **321 ms** | 546 ms (≈ max) |
-| serial (`await` SQL first) | 321 ms | 511 ms | **−3 ms** | 956 ms (≈ sum) |
+| serial (`await` SQL first) | 320 ms | 512 ms | **−3.7 ms** | 943 ms (≈ sum) |
 
 Both spans come from the same .NET clock, so the overlap is a safe hard assertion; the cross-host comparisons in
 this project use ids only.

@@ -52,6 +52,21 @@ Then open <http://127.0.0.1:5173>, submit the default question, and copy the tra
 `run --scenario concurrency` submits twenty requests at once over the API's single shared MCP session;
 `verify --manifest evidence/runs/latest-concurrency.json` checks that none cross-parent.
 
+## What has been verified (scripted mode, 15 Oct 2026)
+
+From a clean clone on Windows via `demo.ps1`:
+
+- Baseline: one Playwright click → 19 spans in **one trace** across `trace-demo-web`, `-api`, `-worker`,
+  `-shipping`; all 16 graph checks pass, including the message-first MCP parent, the HTTP pair, a log record
+  attached to a span in every layer, zero privacy canaries, and **≈320 ms SQL/HTTP overlap** under the local tool.
+- Concurrency: 20 simultaneous clicks over one shared MCP client → 20 distinct, complete traces, no cross-parenting.
+- Eight break/repair experiments and a malformed/conflicting-carrier probe behave as predicted
+  ([experiments/README.md](experiments/README.md)).
+
+Not verified here: **live models** (no `ANTHROPIC_API_KEY`) and **Logfire** export/rendering (no `LOGFIRE_TOKEN`) —
+both are wired and config-validated only. The GitHub workflows have not run yet. See
+[docs/compatibility.md](docs/compatibility.md) for the full ledger.
+
 ## Modes
 
 - **scripted** (default, CI): scripted models are injected at each framework's model abstraction (Pydantic AI

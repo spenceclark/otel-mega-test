@@ -1,40 +1,40 @@
 {
   "schema_version": 1,
   "experiment": "carrier-policy",
-  "git_sha": "5c38f61",
-  "recorded_at": "20261015T004044Z",
+  "git_sha": "edbf578",
+  "recorded_at": "20261015T005230Z",
   "hypothesis": "Malformed carriers are discarded without breaking the tool call; conflicting carriers are never merged.",
   "policy": "Each SDK extracts only its own carrier: _meta parents the MCP operation, the header parents the HTTP server span; they are joined only by a link.",
   "cases": [
     {
       "case": "conflict",
       "ok": true,
-      "detail": "MCP op follows _meta (parent e1df6400f9f1141d, expected e1df6400f9f1141d); HTTP server stays in header trace 8513b26683636e612221566c8fec539d (expected 8513b26683636e612221566c8fec539d); joined only by a link"
+      "detail": "MCP op follows _meta (parent 740ef890743d1f85, expected 740ef890743d1f85); HTTP server stays in header trace 133252651602a1ab89a8f6115fdf6550 (expected 133252651602a1ab89a8f6115fdf6550); joined only by a link"
     },
     {
       "case": "meta-garbage",
       "ok": true,
-      "detail": "invalid _meta discarded; MCP op falls back to the HTTP server span trace-demo-worker:'POST /mcp/'(8b154a6427e85585)"
+      "detail": "invalid _meta discarded; MCP op falls back to the HTTP server span trace-demo-worker:'POST /mcp/'(d4ec7aff95b8bb70)"
     },
     {
       "case": "meta-truncated",
       "ok": true,
-      "detail": "invalid _meta discarded; MCP op falls back to the HTTP server span trace-demo-worker:'POST /mcp/'(3edef7389bdb9e85)"
+      "detail": "invalid _meta discarded; MCP op falls back to the HTTP server span trace-demo-worker:'POST /mcp/'(a80ab8801e343793)"
     },
     {
       "case": "meta-all-zero",
       "ok": true,
-      "detail": "invalid _meta discarded; MCP op falls back to the HTTP server span trace-demo-worker:'POST /mcp/'(59b3c71514491551)"
+      "detail": "invalid _meta discarded; MCP op falls back to the HTTP server span trace-demo-worker:'POST /mcp/'(57143996b8dbde36)"
     },
     {
       "case": "meta-bad-version",
       "ok": true,
-      "detail": "invalid _meta discarded; MCP op falls back to the HTTP server span trace-demo-worker:'POST /mcp/'(6ec1c8d318e1f7de)"
+      "detail": "invalid _meta discarded; MCP op falls back to the HTTP server span trace-demo-worker:'POST /mcp/'(498064bcd4a871db)"
     },
     {
       "case": "header-all-zero",
       "ok": true,
-      "detail": "all-zero header discarded: HTTP server span is a new root (3c455267c340c6c07de1dfa1a1433144); MCP op parent from _meta"
+      "detail": "all-zero header discarded: HTTP server span is a new root (4cd50396ee7dc1570b1341f180e5d5cd); MCP op parent from _meta"
     }
   ],
   "verdict": "confirmed"
