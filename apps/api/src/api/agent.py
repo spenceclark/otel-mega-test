@@ -119,7 +119,7 @@ async def connect(settings: Settings) -> AsyncGenerator[Router]:
         AnthropicModel(
             settings.model_id,
             provider=AnthropicProvider(
-                api_key=os.environ["ANTHROPIC_API_KEY"], base_url=os.environ.get("ANTHROPIC_BASE_URL")
+                api_key=os.environ["ANTHROPIC_API_KEY"], base_url=os.environ.get("ANTHROPIC_BASE_URL") or None
             ),
         )
         if settings.mode == "live"

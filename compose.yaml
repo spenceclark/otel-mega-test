@@ -75,7 +75,7 @@ services:
       DEMO_SQL_DELAY_MS: ${DEMO_SQL_DELAY_MS:-300}
       DEMO_BRANCH_TIMEOUT_MS: ${DEMO_BRANCH_TIMEOUT_MS:-5000}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+      ANTHROPIC_BASE_URL: # passed through only when set; an empty value would be taken as a URL
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,7 +98,7 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: ${API_OTLP_ENDPOINT:-http://otel-collector:4318}
       DEMO_MCP_URL: http://worker:8080/mcp
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+      ANTHROPIC_BASE_URL: # passed through only when set; an empty value would be taken as a URL
     # The lifespan opens the long-lived MCP session and exits if the worker is unreachable.
     restart: on-failure
     depends_on:

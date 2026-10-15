@@ -82,8 +82,39 @@ Recompute with `sha256sum <file>` when a dependency PR lands and re-run the full
 | Browser fetch span timing | instrumentation-fetch 0.223.0 ends the CLIENT span ~300 ms after the response (`OBSERVER_WAIT_TIME_MS`, waiting for resource timing). A flush right after rendering would lose it; `flushTelemetry()` waits for open spans (≤2 s) before force-flushing. |
 | OTLP endpoint (.NET 1.19) | Base `OTEL_EXPORTER_OTLP_ENDPOINT` → `/v1/traces` and `/v1/logs` appended. A base that already ends in `/v1/traces` keeps traces but sends logs to `/v1/traces/v1/logs`. Signal-specific `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is ignored by `AddOtlpExporter()` (only `UseOtlpExporter()` reads it). An **empty** base endpoint silently falls back to `http://localhost:4318`. .NET does not read `OTEL_PROPAGATORS`; its default is W3C trace context. |
 | OTLP endpoint (Python 1.45) | Base endpoint → `/v1/traces`, `/v1/logs` appended; honours `OTEL_PROPAGATORS=tracecontext` (verified: no baggage in headers or `_meta`). |
-| Logfire rendering | *Not executed* — no `LOGFIRE_TOKEN` on the reference host. The fan-out config validates; the UI claims in the article are therefore limited to raw OTLP. |
-| Live models | *Not executed* — no `ANTHROPIC_API_KEY`. Construction is unit-tested in both runtimes; .NET live wiring was exercised against an unreachable base URL (emits `chat claude-haiku-5-5`, `gen_ai.provider.name=anthropic`, then `workload_failure`). |
+| Logfire export | Executed 15 Oct 2026 (`up --mode live --logfire`, EU region): the Collector fanned out to the evidence files and `otlphttp/logfire` with **zero exporter errors** in its log (a bad token or region surfaces there as 401/403). **UI rendering not inspected yet** (Logfire login needed in the browser), so no claims about panels, service grouping or link visibility. |
+| Live models | Executed once (see *Live run record* below): Anthropic `claude-haiku-5-5` in both agents, tool invoked as required, full trace contract passes. |
+
+## Live run record (15 Oct 2026, commit `3fd6e6a` + live fixes)
+
+`demo up --mode live --logfire` → `run --scenario baseline` → `verify`: **all 16 checks pass**, one trace of 23 spans
+(run `5bb43a35…`, trace `1c73f18c…`), outcome `ok`, ≈9.5 s end to end, SQL/HTTP overlap 327 ms, no canaries.
+
+| Agent | Model calls | Returned model | Input / output tokens | Finish reasons |
+|---|---|---|---|---|
+| `request-router` (Pydantic AI) | 2 (1.2 s, 1.6 s) | `claude-haiku-5-5` | 641/94, 977/214 → 1,618 / 308 | `tool_call`, `stop` |
+| `availability-analyst` (MAF) | 2 (4.3 s, 1.6 s) | `claude-haiku-5-5` | 1,334/94, 1,606/239 → 2,940 / 333 | `tool_calls`, `stop` |
+
+Total ≈ 4,558 input and 641 output tokens per submission; within the caps (router: 3 requests, 1 tool call,
+20k tokens; analyst: `DEMO_MAX_OUTPUT_TOKENS=512`). Pricing was not recorded. Both models called their tool on
+the first turn (1/1 runs; a single run says nothing about the miss rate).
+
+Observed only in live mode:
+
+- **Anthropic Python SDK 1.14.0 traces by default.** With a global TracerProvider registered it emits its own
+  CLIENT span `anthropic.messages.create` (scope `com.anthropic.sdk.python`, status OK) *under* Pydantic AI's
+  `chat claude-haiku-5-5` span — two owners for one model call. It also injects trace context into requests to
+  `api.anthropic.com` (`propagation` defaults to true). Content capture stays off unless
+  `ANTHROPIC_OPEN_TELEMETRY_TRACES_CONTENT_MODE=content`. Controls: client option `open_telemetry=False` or
+  `ANTHROPIC_OPEN_TELEMETRY=false` / `ANTHROPIC_OPEN_TELEMETRY_PROPAGATION=false`. Not changed yet — recorded as found.
+- **.NET:** the Anthropic .NET SDK's own tracing is off (set by us), but HttpClient instrumentation records the
+  provider call as `POST` CLIENT to `api.anthropic.com` under each `chat` span and sends `traceparent` to the provider.
+- **Usage keys collide on .NET.** MAF puts the agent's *aggregate* usage on `invoke_agent` under the same
+  `gen_ai.usage.*` keys the `chat` spans use (2,940 = 1,334 + 1,606). Summing every span's `gen_ai.usage.input_tokens`
+  double-counts. Pydantic AI uses `gen_ai.aggregated_usage.*` on its agent span instead.
+- **Finish-reason vocabulary differs:** Pydantic AI `['tool_call']` (array) vs M.E.AI `"[\"tool_calls\"]"` (JSON string).
+- **Compose gotcha fixed:** `ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}` handed the API an empty string, which the
+  Python client takes as a URL. Compose now passes it through only when set, and the API treats empty as unset.
 
 ## Graph profile accepted
 
@@ -96,7 +127,8 @@ span (from `_meta`), and it carries a link to the .NET `POST /mcp/` server span,
 | Concept | Python (Pydantic AI 2.56 / mcp 2.3) | .NET (MAF 1.25 / M.E.AI 10.11 / MCP C# 2.2) |
 |---|---|---|
 | Agent span | `invoke_agent request-router`, kind **INTERNAL**, `gen_ai.agent.name`, `gen_ai.agent.call.id`, aggregated usage | `invoke_agent availability-analyst(availability-analyst)`, kind **CLIENT**, `gen_ai.agent.id`, `gen_ai.agent.name`, `gen_ai.provider.name` (fixed agent id, else the name embeds a GUID) |
-| Model span | `chat scripted-router` CLIENT, `gen_ai.provider.name=function`, **estimated** `gen_ai.usage.*` → we add `demo.model.synthetic=true` | `chat scripted-analyst` CLIENT, no usage attributes (scripted client reports none) |
+| Model span | `chat scripted-router` CLIENT, `gen_ai.provider.name=function`, **estimated** `gen_ai.usage.*` → we add `demo.model.synthetic=true`; live: `chat claude-haiku-5-5` + the Anthropic SDK's own `anthropic.messages.create` child | `chat scripted-analyst` CLIENT, no usage attributes (scripted client reports none); live: `chat claude-haiku-5-5` + HttpClient `POST` child |
+| Agent usage | `gen_ai.aggregated_usage.*` on the agent span | aggregate under the same `gen_ai.usage.*` keys as model spans |
 | Tool span | `execute_tool build_availability_report` INTERNAL (Pydantic AI) | `execute_tool lookup_availability` INTERNAL (FunctionInvokingChatClient) |
 | MCP span | CLIENT `MCP send tools/call <tool>`: `mcp.method.name`, `jsonrpc.request.id`; scope `mcp-python-sdk` (no version) | SERVER `tools/call <tool>`: `mcp.method.name`, `jsonrpc.request.id`, `gen_ai.tool.name`, `gen_ai.operation.name=execute_tool`, `network.transport`, `network.protocol.name`, `mcp.session.id`; no `mcp.protocol.version` |
 | Logical tool error | `execute_tool` + `invoke_agent` ERROR with `exception.type` only; `MCP send` and HTTP `POST` stay UNSET (HTTP 200) | MCP server span ERROR, `error.type=tool_error`; status description is the result text (fixed, content-free) |

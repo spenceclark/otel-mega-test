@@ -1,8 +1,8 @@
 # One Click, Two Agents, Three Runtimes: Can OpenTelemetry Keep the Thread?
 
 *Draft. Every number below comes from raw OTLP evidence captured by the repository's Collector on the pinned stack
-in [docs/compatibility.md](../compatibility.md). Logfire screenshots are not included yet: the reference run had
-no Logfire token, so nothing here claims how Logfire renders these traces.*
+in [docs/compatibility.md](../compatibility.md). Logfire screenshots are not included yet: export to Logfire ran,
+but the UI has not been inspected, so nothing here claims how Logfire renders these traces.*
 
 ## 1. The wager
 
@@ -130,9 +130,13 @@ span attributes. The header canary never appeared in either setting.
 ## 8. Results and limits
 
 Continuity held across every boundary — but one boundary only after we wrote the instrumentation the ecosystem
-does not yet ship. What we did not verify: Logfire's rendering of these traces and links (no token in the
-reference run), live Anthropic models (no key; scripted mode only), cross-origin CORS behaviour, sampling, and
-clock skew beyond "never compare timestamps across hosts". Browser export is best effort: the fetch
+does not yet ship. With real Anthropic models (`claude-haiku-5-5` in both agents) the same contract passed: one
+trace of 23 spans, ≈9.5 s end to end, four model calls (≈4.6k input / 0.6k output tokens), and the Collector
+fanned out to Logfire without export errors. Live mode also exposed two things scripted mode cannot: the
+Anthropic Python SDK now traces itself by default, adding a second model span under Pydantic AI's, and MAF reports
+the agent's *aggregate* usage under the same `gen_ai.usage.*` keys as its model spans — sum every span and you
+double-count. What we did not verify: how Logfire renders these traces and links (not inspected yet),
+cross-origin CORS behaviour, sampling, and clock skew beyond "never compare timestamps across hosts". Browser export is best effort: the fetch
 instrumentation ends its span about 300 ms after the response, so flushing right after rendering silently drops
 it — the app waits for open spans before flushing. In the browser, ambient context did **not** survive a single
 `await` in any run; the app re-enters context explicitly.

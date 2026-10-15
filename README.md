@@ -63,8 +63,9 @@ From a clean clone on Windows via `demo.ps1`:
 - Eight break/repair experiments and a malformed/conflicting-carrier probe behave as predicted
   ([experiments/README.md](experiments/README.md)).
 
-Not verified here: **live models** (no `ANTHROPIC_API_KEY`) and **Logfire** export/rendering (no `LOGFIRE_TOKEN`) —
-both are wired and config-validated only. The GitHub workflows have not run yet. See
+Live mode (`claude-haiku-5-5` in both agents) + Logfire fan-out: one run, all 16 checks pass, Collector reported no
+export errors ([live run record](docs/compatibility.md#live-run-record-15-oct-2026-commit-3fd6e6a--live-fixes)).
+Not verified: Logfire **UI rendering** (not inspected yet). The GitHub workflows have not run yet. See
 [docs/compatibility.md](docs/compatibility.md) for the full ledger.
 
 ## Modes

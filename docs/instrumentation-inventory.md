@@ -54,6 +54,10 @@ depends on a non-null `StartActivity()`.
 
 - One provider per runtime: Python `setup()` is guarded; the browser is guarded at module scope; .NET registers
   through the single `AddOpenTelemetry()` builder.
-- No duplicate spans for one operation: FastMCP's client span is disabled; the Anthropic .NET SDK's own OTel is
-  off in live mode; fetch instrumentation is the only browser HTTP owner; no app `execute_tool` wrapper.
+- No duplicate spans for one operation in **scripted** mode: FastMCP's client span is disabled; the Anthropic .NET
+  SDK's own OTel is off in live mode; fetch instrumentation is the only browser HTTP owner; no app `execute_tool`
+  wrapper. **Live mode exception (observed):** the Anthropic *Python* SDK 1.14.0 traces by default and adds
+  `anthropic.messages.create` under Pydantic AI's `chat` span — a second owner for the model call (see
+  [compatibility.md](compatibility.md#live-run-record-15-oct-2026-commit-3fd6e6a--live-fixes)). Fix when wanted:
+  `open_telemetry=False` on the Anthropic client.
 - `one-request-per-trace` (concurrency run) asserts exactly one API server span and one MCP server operation per trace.
