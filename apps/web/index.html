@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Trace continuity demo</title>
+        <style>
+            body { font: 15px/1.4 system-ui, sans-serif; margin: 0; background: #f6f7f9; color: #1d2330; }
+            main { max-width: 44rem; margin: 2rem auto; padding: 0 1rem; }
+            form { display: grid; gap: 0.75rem; }
+            label { display: grid; gap: 0.25rem; font-weight: 600; }
+            textarea, select { font: inherit; padding: 0.4rem; }
+            .actions { display: flex; gap: 0.5rem; }
+            button { font: inherit; padding: 0.35rem 0.9rem; cursor: pointer; }
+            section { margin-top: 1.25rem; padding: 0.75rem 1rem; background: #fff; border: 1px solid #d5d9e0; border-radius: 6px; }
+            .error { border-color: #d33; background: #fff5f5; }
+            table { border-collapse: collapse; }
+            th, td { text-align: left; padding: 0.15rem 0.75rem 0.15rem 0; }
+            code { font-size: 0.9em; }
+        </style>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script type="module" src="/src/main.tsx"></script>
+    </body>
+</html>

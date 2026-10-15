@@ -1,0 +1,14 @@
+{
+    "name": "trace-demo-e2e",
+    "private": true,
+    "version": "0.0.0",
+    "scripts": {
+        "test": "playwright test",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@playwright/test": "1.64.1",
+        "@types/node": "24.19.2",
+        "typescript": "7.0.2"
+    }
+}

@@ -1,0 +1,41 @@
+name: live-smoke
+
+# Opt-in only: real model calls (Anthropic) and Logfire export. Never runs on forks or PRs.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    environment: live-smoke # holds ANTHROPIC_API_KEY and LOGFIRE_TOKEN; add required reviewers there
+    timeout-minutes: 20
+    env:
+      DEMO_ENVIRONMENT: demo
+      DEMO_MODEL_ID: claude-haiku-5-5
+      DEMO_MAX_OUTPUT_TOKENS: "512"
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      LOGFIRE_TOKEN: ${{ secrets.LOGFIRE_TOKEN }}
+      LOGFIRE_OTLP_ENDPOINT: ${{ vars.LOGFIRE_OTLP_ENDPOINT || 'https://logfire-eu.pydantic.dev' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.12.24"
+      - run: ./scripts/demo.sh up --mode live --logfire
+      # One submission (spend ceiling: per-run request/token caps in both agents). A missed tool call is a
+      # workload failure (API error `workload_failure`), reported separately from a trace regression.
+      - run: ./scripts/demo.sh run --scenario baseline
+      - run: ./scripts/demo.sh verify
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: live-evidence
+          retention-days: 5
+          path: |
+            evidence/runs/
+            evidence/otel/
+      - if: always()
+        run: ./scripts/demo.sh down

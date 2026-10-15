@@ -1,0 +1,50 @@
+[project]
+name = "api"
+version = "0.1.0"
+description = "trace-continuity demo: FastAPI + Pydantic AI request-router and the shipping stub"
+requires-python = "==3.14.*"
+dependencies = [
+    "pydantic-ai-slim[mcp,anthropic]==2.56.0",
+    # imported directly, so pinned directly (same versions pydantic-ai-slim 2.56.0 resolves)
+    "fastmcp-slim==4.1.0",
+    "mcp==2.3.0",
+    "httpx2==2.13.1",
+    "pydantic==2.14.1",
+    "fastapi==0.143.1",
+    "uvicorn==0.54.0",
+    "opentelemetry-api==1.45.1",
+    "opentelemetry-sdk==1.45.1",
+    "opentelemetry-exporter-otlp-proto-http==1.45.1",
+    "opentelemetry-instrumentation-fastapi==0.66b1",
+    # replacement for the LoggingHandler deprecated in opentelemetry-sdk 1.45
+    "opentelemetry-instrumentation-logging==0.66b1",
+]
+
+[dependency-groups]
+dev = [
+    "pyright==1.1.414",
+    "pytest==9.1.1",
+    "ruff==0.17.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "ASYNC", "RUF"]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.14"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

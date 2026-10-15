@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Worker</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Worker.Tests" />
+    <Compile Remove="Tests/**" />
+    <Content Remove="Tests/**" />
+    <None Remove="Tests/**" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI" />
+    <PackageReference Include="Anthropic" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Npgsql.OpenTelemetry" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+  </ItemGroup>
+</Project>

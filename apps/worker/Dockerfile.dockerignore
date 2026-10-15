@@ -1,0 +1,10 @@
+# BuildKit reads <Dockerfile>.dockerignore for this Dockerfile (context = repo root).
+**
+!.editorconfig
+!global.json
+!Directory.Build.props
+!Directory.Packages.props
+!apps/worker/
+apps/worker/**/bin/
+apps/worker/**/obj/
+apps/worker/Tests/

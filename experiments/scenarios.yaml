@@ -1,0 +1,112 @@
+# Break/repair laboratory. One controlled variable per scenario; the fix is always "restore baseline".
+# `env` is applied to `docker compose up` (compose recreates only services whose config changed;
+# every service ignores scenarios it does not own). Check ids are defined in scripts/assert-traces.py.
+schema_version: 1
+scenarios:
+  baseline:
+    hypothesis: One browser submission keeps one trace id across browser, Python, .NET and the shipping stub.
+    env: {}
+    spec: ask.spec.ts
+    profile: baseline
+
+  concurrency:
+    hypothesis: Twenty simultaneous submissions over one shared, long-lived MCP session never cross-parent.
+    env: {}
+    spec: concurrency.spec.ts
+    profile: baseline
+
+  headers-removed:
+    hypothesis: The HTTP header carrier and the MCP message carrier are independent; removing headers only orphans the .NET HTTP server span.
+    owner: api (apps/api/src/api/mcp_adapter.py)
+    fault: The httpx2 transport hook skips traceparent/tracestate header injection on POST /mcp; params._meta is untouched.
+    env: { DEMO_SCENARIO: headers-removed }
+    spec: ask.spec.ts
+    profile: baseline
+    expected_graph: The .NET ASP.NET server span for POST /mcp roots a new trace; the MCP server operation stays in the browser trace via _meta and links across to it.
+    expect_fail: [api-http-client->worker-http-server]
+    expect_pass: [required-spans, mcp-message-parent, io-overlap]
+    fix: Restore header injection in the transport hook (DEMO_SCENARIO=baseline).
+
+  meta-removed:
+    hypothesis: Without params._meta the C# MCP server falls back to the ambient HTTP server activity, so continuity survives through headers but message parentage changes.
+    owner: api (apps/api/src/api/mcp_adapter.py)
+    fault: The transport hook deletes only traceparent/tracestate from params._meta of outgoing JSON-RPC requests; headers untouched.
+    env: { DEMO_SCENARIO: meta-removed }
+    spec: ask.spec.ts
+    profile: baseline
+    expected_graph: Same trace id end to end, but the MCP server span is a child of the .NET HTTP server span instead of the Python MCP client span.
+    expect_fail: [mcp-message-parent]
+    expect_pass: [required-spans, api-http-client->worker-http-server, io-overlap]
+    fix: Restore native mcp SDK _meta injection (DEMO_SCENARIO=baseline).
+
+  both-removed:
+    hypothesis: With both carriers stripped .NET starts an independent trace; nothing downstream can rejoin it.
+    owner: api (apps/api/src/api/mcp_adapter.py)
+    fault: No traceparent header and no tracing keys in params._meta.
+    env: { DEMO_SCENARIO: both-removed }
+    spec: ask.spec.ts
+    profile: baseline
+    expected_graph: The browser trace ends at the Python MCP client; every .NET span lives in a different trace id.
+    expect_fail: [required-spans, mcp-message-parent, api-http-client->worker-http-server]
+    expect_pass: [browser-client->api-server]
+    fix: Restore both carriers (DEMO_SCENARIO=baseline).
+
+  context-detached:
+    hypothesis: The local tool's concurrency only stays in the trace because ExecutionContext flows into the branch tasks.
+    owner: worker (apps/worker/Tools/LookupAvailability.cs)
+    fault: The shipping branch is started under ExecutionContext.SuppressFlow(), so Activity.Current is null inside it.
+    env: { DEMO_SCENARIO: context-detached }
+    spec: ask.spec.ts
+    profile: baseline
+    expected_graph: The shipping HTTP CLIENT span (and the stub's server span) root a new trace; the SQL branch is unaffected.
+    expect_fail: [required-spans, io-under-tool]
+    expect_pass: [mcp-message-parent, agent-ancestry]
+    fix: Start the branch under the captured tool context (DEMO_SCENARIO=baseline).
+
+  serial-io:
+    hypothesis: Awaiting SQL before starting HTTP keeps the same trace but removes the overlap.
+    owner: worker (apps/worker/Tools/LookupAvailability.cs)
+    fault: The tool awaits the stock query before creating the shipping task.
+    env: { DEMO_SCENARIO: serial-io }
+    spec: ask.spec.ts
+    profile: baseline
+    expected_graph: Same graph and parents; leaf intervals are disjoint and the tool span lasts about the sum of both branches.
+    expect_fail: [io-overlap]
+    expect_pass: [required-spans, io-under-tool, mcp-message-parent]
+    fix: Start both tasks before Task.WhenAll (DEMO_SCENARIO=baseline).
+
+  logical-error:
+    hypothesis: A logical MCP tool failure travels over HTTP 200 and must still be visible as a failed logical operation.
+    owner: worker (apps/worker/McpTools)
+    fault: The MCP tool completes its work, then returns isError=true (HTTP 200).
+    env: { DEMO_SCENARIO: logical-error }
+    spec: ask.spec.ts
+    profile: logical-error
+    expected_graph: Full graph; MCP client span ERROR, transport HTTP span 200/UNSET, API outcome tool_error.
+    expect_fail: []
+    expect_pass: [required-spans, logical-error-mapped, api-http-client->worker-http-server]
+    fix: None needed — this scenario verifies the status mapping. Rerun baseline to confirm outcome-ok.
+
+  privacy:
+    hypothesis: Default telemetry carries no prompt, completion, tool result or header content; enabling content capture leaks canaries.
+    owner: api + worker (agent instrumentation content capture)
+    fault: DEMO_CONTENT_CAPTURE=true enables GenAI message/tool content capture in both frameworks.
+    env: { DEMO_CONTENT_CAPTURE: "true" }
+    spec: ask.spec.ts
+    profile: baseline
+    expected_graph: Unchanged graph; canary strings appear in span attributes/events.
+    expect_fail: [privacy-canaries]
+    expect_pass: [required-spans]
+    fix: DEMO_CONTENT_CAPTURE=false (default).
+
+  export-failure:
+    hypothesis: Lost export is distinguishable from lost propagation; downstream spans keep the browser trace id while the API's spans never arrive.
+    owner: compose (api OTLP endpoint)
+    fault: Only the API exports to an unresolvable OTLP endpoint (API_OTLP_ENDPOINT).
+    env: { API_OTLP_ENDPOINT: "http://otel-collector-unreachable:4318" }
+    spec: ask.spec.ts
+    profile: baseline
+    expected_graph: Browser and .NET spans share the submission trace id; .NET spans have dangling parents (the missing Python spans).
+    expect_fail: [required-spans, parents-resolve, browser-client->api-server]
+    expect_pass: [browser-root, io-overlap]
+    fix: Point the API back at the Collector (unset API_OTLP_ENDPOINT).

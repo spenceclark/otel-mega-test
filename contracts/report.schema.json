@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trace-continuity-demo.local/contracts/report.schema.json",
+  "title": "MCP tool arguments/results and .NET local tool DTOs",
+  "$defs": {
+    "ProductCode": { "type": "string", "enum": ["DEMO-LANTERN", "DEMO-KETTLE", "DEMO-TENT"] },
+    "DestinationZone": { "type": "string", "enum": ["DEMO-NORTH", "DEMO-SOUTH", "DEMO-EAST"] },
+    "BuildAvailabilityReportArgs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product_code", "destination_zone"],
+      "properties": {
+        "product_code": { "$ref": "#/$defs/ProductCode" },
+        "destination_zone": { "$ref": "#/$defs/DestinationZone" }
+      }
+    },
+    "ShippingQuote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["destination_zone", "carrier", "price_cents", "currency", "eta_days", "reference"],
+      "properties": {
+        "destination_zone": { "$ref": "#/$defs/DestinationZone" },
+        "carrier": { "type": "string" },
+        "price_cents": { "type": "integer", "minimum": 0 },
+        "currency": { "type": "string" },
+        "eta_days": { "type": "integer", "minimum": 0 },
+        "reference": { "type": "string" }
+      }
+    },
+    "StockLevel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product_code", "quantity_on_hand", "warehouse"],
+      "properties": {
+        "product_code": { "$ref": "#/$defs/ProductCode" },
+        "quantity_on_hand": { "type": "integer", "minimum": 0 },
+        "warehouse": { "type": "string" }
+      }
+    },
+    "LookupResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stock", "quote"],
+      "properties": {
+        "stock": { "$ref": "#/$defs/StockLevel" },
+        "quote": { "$ref": "#/$defs/ShippingQuote" }
+      }
+    },
+    "AvailabilityReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product_code", "destination_zone", "available", "quantity_on_hand", "warehouse", "shipping", "summary"],
+      "properties": {
+        "product_code": { "$ref": "#/$defs/ProductCode" },
+        "destination_zone": { "$ref": "#/$defs/DestinationZone" },
+        "available": { "type": "boolean" },
+        "quantity_on_hand": { "type": "integer", "minimum": 0 },
+        "warehouse": { "type": "string" },
+        "shipping": { "$ref": "#/$defs/ShippingQuote" },
+        "summary": { "type": "string" }
+      }
+    }
+  }
+}

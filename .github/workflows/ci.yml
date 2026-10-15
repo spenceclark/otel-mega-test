@@ -1,0 +1,106 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1" # weekly full fault matrix
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.12.24"
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24.22.0"
+
+      - name: Python (api) lint, types, tests
+        working-directory: apps/api
+        run: |
+          uv sync --frozen
+          uv run ruff check
+          uv run ruff format --check
+          uv run pyright
+          uv run pytest -q
+      - name: Scripts lint
+        run: |
+          uvx ruff@0.17.0 check scripts
+          uvx ruff@0.17.0 format --check scripts
+          uv run --quiet scripts/assert-traces.py --help > /dev/null
+      - name: .NET build and tests
+        run: |
+          dotnet build apps/worker/Tests -warnaserror
+          dotnet test apps/worker/Tests --no-build
+      - name: Web typecheck and build
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run build
+      - name: E2E typecheck
+        working-directory: tests/e2e
+        run: |
+          npm ci
+          npx tsc --noEmit
+      - name: Collector configs validate with the pinned binary
+        run: |
+          for f in otelcol.ci.yaml otelcol.yaml; do
+            docker run --rm -e LOGFIRE_TOKEN=x -v "$PWD/infra/collector:/etc/otelcol-cfg:ro" \
+              otel/opentelemetry-collector-contrib:0.162.0@sha256:39923a8e431bd1f57be82411999d389fcfe40857492e4365456d97a4c1f74be6 \
+              validate --config=/etc/otelcol-cfg/$f
+          done
+      - name: Shared schemas parse
+        run: for f in contracts/*.json; do python3 -m json.tool "$f" > /dev/null; done
+
+  trace-contracts:
+    needs: static
+    runs-on: ubuntu-24.04
+    env:
+      DEMO_ENVIRONMENT: ci
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.12.24"
+      - name: Start stack (scripted models, local evidence only, no cloud exporter)
+        run: ./scripts/demo.sh up --mode scripted
+      - name: Baseline submission + trace contract
+        run: |
+          ./scripts/demo.sh run --scenario baseline
+          ./scripts/demo.sh verify
+      - name: Twenty concurrent submissions
+        run: |
+          ./scripts/demo.sh run --scenario concurrency
+          ./scripts/demo.sh verify --manifest evidence/runs/latest-concurrency.json
+      - name: Break/fix experiments (PR subset)
+        if: github.event_name == 'pull_request'
+        run: |
+          ./scripts/demo.sh experiment meta-removed
+          ./scripts/demo.sh experiment serial-io
+          ./scripts/demo.sh experiment privacy
+      - name: Break/fix experiments (full matrix)
+        if: github.event_name != 'pull_request'
+        run: ./scripts/demo.sh experiment all
+      - name: Upload sanitized evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: trace-evidence
+          retention-days: 5
+          path: |
+            evidence/runs/
+            evidence/experiments/
+            evidence/otel/
+      - name: Tear down
+        if: always()
+        run: ./scripts/demo.sh down

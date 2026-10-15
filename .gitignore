@@ -52,3 +52,18 @@ Thumbs.db
 
 *.jsonl
 
+!.env.example
+
+# ======================
+# Demo stack
+# ======================
+evidence/
+node_modules/
+dist/
+playwright-report/
+test-results/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+TestResults/

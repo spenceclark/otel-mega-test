@@ -1,0 +1,49 @@
+# Logfire profile: fan out to local evidence files AND one Logfire project.
+# Only the Collector holds the write token (LOGFIRE_TOKEN); browsers and apps never see it.
+# Endpoint is the regional base URL, e.g. https://logfire-eu.pydantic.dev or https://logfire-us.pydantic.dev.
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+    spike_limit_mib: 64
+  batch:
+    timeout: 1s
+
+exporters:
+  file/traces:
+    path: /evidence/otel/traces.jsonl
+    format: json
+    flush_interval: 1s
+  file/logs:
+    path: /evidence/otel/logs.jsonl
+    format: json
+    flush_interval: 1s
+  otlphttp/logfire:
+    endpoint: ${env:LOGFIRE_OTLP_ENDPOINT}
+    headers:
+      Authorization: "Bearer ${env:LOGFIRE_TOKEN}"
+
+service:
+  extensions: [health_check]
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [file/traces, otlphttp/logfire]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [file/logs, otlphttp/logfire]

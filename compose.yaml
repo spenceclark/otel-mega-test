@@ -1,0 +1,151 @@
+# One request, several runtimes, one trace — local stack.
+# Only the gateway (5173) and optional diagnostics (Postgres 55432, OTLP 4318) are published, on loopback only.
+name: trace-continuity-demo
+
+x-otel-env: &otel-env
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  OTEL_PROPAGATORS: tracecontext
+  OTEL_TRACES_SAMPLER: parentbased_always_on
+  OTEL_RESOURCE_ATTRIBUTES: service.namespace=trace-continuity-demo,deployment.environment.name=${DEMO_ENVIRONMENT:-local},service.version=${GIT_SHA:-dev}
+  DEMO_MODE: ${DEMO_MODE:-scripted}
+  DEMO_SCENARIO: ${DEMO_SCENARIO:-baseline}
+  DEMO_CONTENT_CAPTURE: ${DEMO_CONTENT_CAPTURE:-false}
+  DEMO_REQUEST_TIMEOUT_SECONDS: ${DEMO_REQUEST_TIMEOUT_SECONDS:-30}
+  DEMO_MODEL_ID: ${DEMO_MODEL_ID:-claude-haiku-5-5}
+  DEMO_MAX_OUTPUT_TOKENS: ${DEMO_MAX_OUTPUT_TOKENS:-512}
+
+services:
+  postgres:
+    image: postgres:18.6-alpine3.24@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    environment:
+      POSTGRES_DB: demo
+      POSTGRES_USER: demo_owner
+      POSTGRES_PASSWORD: ${DEMO_DB_OWNER_PASSWORD:-demo_owner_pw}
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo_owner -d demo && psql -U demo_owner -d demo -tAc 'SELECT 1 FROM stock LIMIT 1' | grep -q 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.162.0@sha256:39923a8e431bd1f57be82411999d389fcfe40857492e4365456d97a4c1f74be6
+    command: ["--config=/etc/otelcol-cfg/${OTELCOL_CONFIG:-otelcol.ci.yaml}"]
+    environment:
+      LOGFIRE_OTLP_ENDPOINT: ${LOGFIRE_OTLP_ENDPOINT:-https://logfire-eu.pydantic.dev}
+      LOGFIRE_TOKEN: ${LOGFIRE_TOKEN:-}
+    volumes:
+      - ./infra/collector:/etc/otelcol-cfg:ro
+      - ./evidence:/evidence
+    ports:
+      - "127.0.0.1:14318:4318"
+
+  shipping:
+    build: apps/api
+    command: ["uvicorn", "api.shipping_stub:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: trace-demo-shipping
+      DEMO_SHIPPING_DELAY_MS: ${DEMO_SHIPPING_DELAY_MS:-500}
+      DEMO_SHIPPING_FAIL: ${DEMO_SHIPPING_FAIL:-false}
+    depends_on:
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: trace-demo-worker
+      ASPNETCORE_URLS: http://+:8080
+      DEMO_DB_CONNECTION: Host=postgres;Port=5432;Database=demo;Username=demo_reader;Password=demo_reader_pw
+      DEMO_SHIPPING_URL: http://shipping:8000
+      DEMO_SQL_DELAY_MS: ${DEMO_SQL_DELAY_MS:-300}
+      DEMO_BRANCH_TIMEOUT_MS: ${DEMO_BRANCH_TIMEOUT_MS:-5000}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      shipping:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+
+  api:
+    build: apps/api
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: trace-demo-api
+      # Export-failure experiment overrides this one service's endpoint; everything else stays intact.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${API_OTLP_ENDPOINT:-http://otel-collector:4318}
+      DEMO_MCP_URL: http://worker:8080/mcp
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+    # The lifespan opens the long-lived MCP session and exits if the worker is unreachable.
+    restart: on-failure
+    depends_on:
+      worker:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/healthz', timeout=2)"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
+        DEMO_ENVIRONMENT: ${DEMO_ENVIRONMENT:-local}
+    ports:
+      - "127.0.0.1:5173:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/gateway-healthz"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Playwright runner: `docker compose --profile e2e run --rm e2e npx playwright test ask.spec.ts`
+  e2e:
+    build: tests/e2e
+    profiles: [e2e]
+    init: true
+    ipc: host
+    environment:
+      BASE_URL: http://web:8080
+      EVIDENCE_DIR: /evidence
+      SCENARIO: ${DEMO_SCENARIO:-baseline}
+      EXPECT_OUTCOME: ${EXPECT_OUTCOME:-}
+    volumes:
+      - ./evidence:/evidence
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  pgdata:

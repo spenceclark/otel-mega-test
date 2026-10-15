@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trace-continuity-demo.local/contracts/ask.schema.json",
+  "title": "Public POST /api/ask contract",
+  "$defs": {
+    "AskRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["message", "product_code", "destination_zone"],
+      "properties": {
+        "message": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "product_code": { "$ref": "report.schema.json#/$defs/ProductCode" },
+        "destination_zone": { "$ref": "report.schema.json#/$defs/DestinationZone" }
+      }
+    },
+    "AskResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "answer", "evidence", "trace_id", "scenario", "mode"],
+      "properties": {
+        "run_id": { "type": "string" },
+        "answer": { "type": "string" },
+        "evidence": { "$ref": "report.schema.json#/$defs/AvailabilityReport" },
+        "trace_id": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+        "scenario": { "type": "string" },
+        "mode": { "type": "string", "enum": ["scripted", "live"] }
+      }
+    },
+    "AskError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "trace_id", "error", "detail"],
+      "properties": {
+        "run_id": { "type": "string" },
+        "trace_id": { "type": "string" },
+        "error": { "type": "string", "enum": ["tool_error", "timeout", "workload_failure", "internal_error"] },
+        "detail": { "type": "string" }
+      }
+    }
+  }
+}
