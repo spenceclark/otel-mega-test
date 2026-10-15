@@ -152,6 +152,41 @@ Observed only in live mode:
 
 ![Logfire Agents page](article/img/logfire-agents.png)
 
+- **Services view.** Lists the four resource services with a runtime badge (`dotnet` for the worker, `python`
+  for the API and stub, none for the browser) and the `service.version` from `OTEL_RESOURCE_ATTRIBUTES`, plus a
+  fifth entry, **`demo` (postgresql)**, inferred from the Npgsql client spans (`db.namespace=demo`) even though
+  PostgreSQL itself exports nothing. Error rate 0% across the live runs.
+
+![Logfire Services page](article/img/logfire-services.png)
+
+### Content capture on (live, `run --scenario privacy`, trace `a268b981…`)
+
+With `DEMO_CONTENT_CAPTURE=true` both frameworks record messages. Every structural check still passed (overlap
+327 ms); only `privacy-canaries` failed, as designed — the prompt canary and the shipping-reference canary (which
+travels only inside tool results) appeared. Which spans carried content:
+
+| Runtime | Span | Content attributes |
+|---|---|---|
+| Python | `invoke_agent request-router` | `pydantic_ai.all_messages`, `final_result`, `gen_ai.system_instructions` |
+| Python | `chat claude-haiku-5-5` | `gen_ai.input.messages`, `gen_ai.output.messages`, `gen_ai.system_instructions` |
+| Python | `execute_tool build_availability_report` | `gen_ai.tool.call.arguments`, `gen_ai.tool.call.result` |
+| Python | `anthropic.messages.create` (Anthropic SDK) | **none** — its content mode is separate (`ANTHROPIC_OPEN_TELEMETRY_TRACES_CONTENT_MODE`) and stayed off |
+| .NET | `invoke_agent availability-analyst(…)` | `gen_ai.input.messages`, `gen_ai.output.messages` |
+| .NET | `chat claude-haiku-5-5` | `gen_ai.input.messages`, `gen_ai.output.messages`, `gen_ai.system_instructions` |
+| .NET | `execute_tool lookup_availability` | `gen_ai.tool.call.arguments`, `gen_ai.tool.call.result` |
+
+The MCP spans (`MCP send …`, C# `tools/call …`) and the HTTP spans carry no content in either setting.
+
+Logfire turns these into conversation panels. The Python agent span gets an **Agent Run** tab (prompt → tool call
+with request/result JSON → answer); the .NET `invoke_agent` span — kind CLIENT with model attributes — gets a
+**Model Run** tab instead, showing the analyst's own input, the `lookup_availability` call and its JSON report.
+
+| Python `request-router` (Agent Run) | .NET `availability-analyst` (Model Run) |
+|---|---|
+| ![Router conversation in Logfire](article/img/logfire-content-router.png) | ![Analyst conversation in Logfire](article/img/logfire-content-analyst.png) |
+
+The stack was switched back to capture **off** right after this run.
+
 ## Graph profile accepted
 
 **Message-first** (spec §5): the .NET MCP server operation's parent is the Python `MCP send tools/call …` CLIENT

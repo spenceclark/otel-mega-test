@@ -127,6 +127,17 @@ Content capture is off in both frameworks by default. Turning it on leaked four 
 completion, the .NET agent's summary, and a shipping reference that only ever travels inside tool results — into
 span attributes. The header canary never appeared in either setting.
 
+With capture on, Logfire turns the same attributes into readable conversations — and shows the vocabulary gap
+again: the Python agent span opens as an *Agent Run*, the .NET agent span (a CLIENT span with model attributes)
+as a *Model Run*:
+
+| Python `request-router` | .NET `availability-analyst` |
+|---|---|
+| ![](img/logfire-content-router.png) | ![](img/logfire-content-analyst.png) |
+
+Note what crossed the MCP boundary: nothing. The `_meta` carrier holds only `traceparent`; the two conversations
+are joined by trace ids, not by copying content between runtimes.
+
 ## 8. Results and limits
 
 Continuity held across every boundary — but one boundary only after we wrote the instrumentation the ecosystem
