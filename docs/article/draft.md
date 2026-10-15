@@ -50,9 +50,22 @@ traceparent: 00-fdb5f299a4f3d6b56234bb8a1c803361-fff037090c5a4cea-01
 {"message": "Can I get the demo lantern delivered to DEMO-NORTH?", "product_code": "DEMO-LANTERN", "destination_zone": "DEMO-NORTH"}
 ```
 
-(The `traceparent` value is read back from the trace rather than from DevTools. The API's server span records
+(The `traceparent` value above is read back from the trace: the API's server span records
 `fff037090c5a4cea`, the browser's `POST` span, as its parent, and that parent can only have come from this header.
 `X-Demo-Canary` is a privacy canary: a header value that must never appear in telemetry.)
+
+Chrome DevTools for another click shows the same thing first-hand: three requests (`ask`, `traces`, `logs`), and
+on `ask` a single `traceparent` of the form `00-<trace id>-<browser POST span id>-01`. The `01` flag means
+sampled, which is why every backend span is recorded too. There is no `tracestate` and no `baggage`; the browser
+uses the W3C trace-context propagator only.
+
+![Chrome DevTools: the ask request and its traceparent header](img/devtools-ask-headers.png)
+
+DevTools also shows something we didn't expect. The redacted `Cookie` row is a session cookie from a *different*
+local app on `127.0.0.1:3080`. Browsers scope cookies by host, not port, so it rides along to the demo. It never
+reaches telemetry: no instrumentation here records request headers, and the canary checks found nothing. But
+the gateway currently strips `Cookie` only on the telemetry routes and forwards it to `/api`. That is exactly
+the kind of accidental data flow this project is meant to make visible.
 
 The response, verbatim:
 
