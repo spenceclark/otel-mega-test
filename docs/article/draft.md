@@ -135,8 +135,8 @@ as a *Model Run*:
 |---|---|
 | ![](img/logfire-content-router.png) | ![](img/logfire-content-analyst.png) |
 
-Note what crossed the MCP boundary: nothing. The `_meta` carrier holds only `traceparent`; the two conversations
-are joined by trace ids, not by copying content between runtimes.
+No telemetry content crosses the MCP boundary: the tracing part of `_meta` is just `traceparent`. The two
+conversations are joined by trace ids, not by copying captured content between runtimes.
 
 ## 8. Results and limits
 
