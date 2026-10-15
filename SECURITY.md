@@ -24,5 +24,6 @@ Open a private security advisory on the repository rather than a public issue.
 
 `evidence/` (raw OTLP JSON lines, run manifests, experiment outputs) is git-ignored and local. `demo reset --yes`
 deletes it. Committed `experiments/*/result.json` files contain only synthetic ids, check names and sanitized
-details. Do not publish MCP session ids or full carriers in screenshots; Logfire retention and access are governed
+details. `tests/trace-contracts/fixtures/` is one captured synthetic run (scripted models, seeded data, stateless random
+`mcp.session.id` values, no passwords) kept as a test fixture. Do not publish MCP session ids or full carriers in screenshots; Logfire retention and access are governed
 by the Logfire project you configure.

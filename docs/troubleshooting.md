@@ -30,6 +30,10 @@
   SDKs append `/v1/traces` and `/v1/logs`. A signal-specific variable (`…_TRACES_ENDPOINT`) must include the
   path. The browser uses explicit signal URLs (`/telemetry/v1/traces`). See docs/compatibility.md for what each
   SDK actually did.
+- **`ANTHROPIC_BASE_URL` leaks in from your shell.** Compose passes `ANTHROPIC_BASE_URL` through to the API and
+  worker. Some tools (e.g. Claude Code) set it to their own proxy; `demo up --mode live` would then send model calls
+  there. Unset it (`unset ANTHROPIC_BASE_URL` / `Remove-Item Env:ANTHROPIC_BASE_URL`) or set it in `.env` to the
+  endpoint you actually want before a live run.
 - **Evidence grows forever.** The file exporter appends. `verify` filters by run id and trace id, but
   `demo reset --yes` is the clean slate.
 - **Stale scenario.** `run --scenario X` re-applies configuration through Compose each time. Check the active
