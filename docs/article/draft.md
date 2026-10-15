@@ -55,9 +55,11 @@ traceparent: 00-fdb5f299a4f3d6b56234bb8a1c803361-fff037090c5a4cea-01
 `X-Demo-Canary` is a privacy canary: a header value that must never appear in telemetry.)
 
 Chrome DevTools for another click shows the same thing first-hand: three requests (`ask`, `traces`, `logs`), and
-on `ask` a single `traceparent` of the form `00-<trace id>-<browser POST span id>-01`. The `01` flag means
-sampled, which is why every backend span is recorded too. There is no `tracestate` and no `baggage`; the browser
-uses the W3C trace-context propagator only.
+on `ask` a single `traceparent`, `00-665bfde18a480568fbf34769b00fd9bc-f504c61ff2a45cca-01`. The `01` flag
+means sampled, which is why every backend span is recorded too. There is no `tracestate` and no `baggage`; the
+browser uses the W3C trace-context propagator only. The *Payload* tab shows just the three business fields
+(`message`, `product_code`, `destination_zone`), with no tracing data in the body. The *Response* tab for the same
+click returns `"trace_id": "665bfde18a480568fbf34769b00fd9bc"`, the trace id the browser put in the header.
 
 ![Chrome DevTools: the ask request and its traceparent header](img/devtools-ask-headers.png)
 
