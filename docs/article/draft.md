@@ -44,7 +44,7 @@ api          └ chat scripted-router                      1 ms
 
 The assertion tool (`scripts/assert-traces.py`) checks sixteen relationships on that graph and passes. Twenty
 simultaneous clicks over the API's single long-lived MCP client produced twenty distinct traces, each with exactly
-one API request and one MCP operation, and zero spans parented into another submission's trace.
+one API request and one MCP operation, and zero spans parented into another submission's trace (section 6).
 
 ## 3. The boundary ledger
 
@@ -121,7 +121,54 @@ The one way we found to *lose* a branch was to create it without the ambient `Ex
 (`SuppressFlow()` + a yield): the HTTP client span and the stub's server span moved to a new trace while the SQL
 branch stayed put. `ConfigureAwait(false)` alone does no such thing.
 
-## 6. Break it on purpose
+## 6. Twenty clicks at once
+
+One click producing one trace proves little if two clicks at the same moment can tangle. Everything below the
+browser is shared: one FastAPI process, one long-lived Pydantic AI MCP client with one httpx2 client and transport
+hook, one .NET worker with one Npgsql connection pool and one `HttpClient`. If any of them kept trace context in
+shared state — a `traceparent` stored on the client's default headers at startup is the classic mistake — later
+requests would become children of an earlier one.
+
+So Playwright opens twenty separate browser contexts, fills in all twenty forms, and submits them together. The
+burst was real concurrency, not a queue: measured from the spans, **all twenty requests were in flight at the
+same moment** at the FastAPI server, at the .NET MCP server, and inside the local tool. Their first records
+landed within 118 ms of each other, and the whole burst finished in 1.6 s (median request 1.5 s against roughly
+0.9 s for a lone click — the contention is visible, the bleeding is not).
+
+In Logfire that is twenty `ui.ask` roots side by side, each a separate trace with the same 40 descendants:
+
+![Twenty concurrent submissions, twenty separate traces](img/logfire-concurrency-roots.png)
+
+Logfire's SQL Workbench gives the same answer per trace:
+
+```sql
+SELECT trace_id,
+       count(*)                     AS records,
+       count(DISTINCT service_name) AS services,
+       sum(CASE WHEN span_name = 'POST /api/ask' THEN 1 ELSE 0 END)                        AS api_requests,
+       sum(CASE WHEN span_name = 'tools/call build_availability_report' THEN 1 ELSE 0 END) AS mcp_tool_calls,
+       sum(CASE WHEN span_name = 'postgresql' THEN 1 ELSE 0 END)                           AS sql_queries,
+       min(start_timestamp)         AS first_record
+FROM records
+WHERE start_timestamp BETWEEN '2026-10-15T10:36:30Z' AND '2026-10-15T10:36:40Z'
+GROUP BY trace_id
+ORDER BY first_record
+```
+
+![Per-trace summary in Logfire: every trace has exactly one of everything](img/logfire-concurrency-sql.png)
+
+Twenty rows, all identical: 41 records (19 spans, 12 log records, 10 span events), 4 services, exactly one API
+request, one MCP tool call and one SQL query. A bleed would show up here as a trace with two MCP calls and
+another with none.
+
+The authoritative check runs on the raw Collector file rather than a UI. `assert-traces.py` ran all sixteen
+per-trace checks on each of the twenty traces — 320 passes — plus three cross-run checks: twenty distinct trace
+ids, **zero spans parented into another submission's trace**, and exactly one API request and one MCP operation
+per trace. Nothing here needed special handling. Every carrier is built per request from the span that is current
+at that moment: the httpx2 hook builds a fresh header carrier for each request, the mcp SDK injects `_meta`
+per message, and .NET flows `ExecutionContext` per request. The long-lived client only carries connections.
+
+## 7. Break it on purpose
 
 Eight break/repair pairs ran on the same stack, each changing one variable, each with an expected failing check,
 a minimal repair and a passing rerun ([experiments/](../../experiments/README.md)). Three are worth separating:
@@ -135,7 +182,7 @@ a minimal repair and a passing rerun ([experiments/](../../experiments/README.md
   stays UNSET (the JSON-RPC exchange succeeded), while Python's `execute_tool` and the .NET MCP operation are
   ERROR with `error.type=tool_error`. If your dashboard only colours HTTP errors, this request looks healthy.
 
-## 7. Same trace, different vocabulary
+## 8. Same trace, different vocabulary
 
 The two agent frameworks agree on `invoke_agent`, `chat` and `execute_tool`, and on little else: Pydantic AI's
 agent span is INTERNAL, MAF's is CLIENT; Pydantic AI's scripted model reports *estimated* token usage (we tag
@@ -159,7 +206,7 @@ as a *Model Run*:
 No telemetry content crosses the MCP boundary: the tracing part of `_meta` is just `traceparent`. The two
 conversations are joined by trace ids, not by copying captured content between runtimes.
 
-## 8. Results and limits
+## 9. Results and limits
 
 Continuity held across every boundary — but one boundary only after we wrote the instrumentation the ecosystem
 does not yet ship. With real Anthropic models (`claude-haiku-5-5` in both agents) the same contract passed: one
@@ -186,7 +233,7 @@ instrumentation ends its span about 300 ms after the response, so flushing right
 it — the app waits for open spans before flushing. In the browser, ambient context did **not** survive a single
 `await` in any run; the app re-enters context explicitly.
 
-## 9. Reproduce it
+## 10. Reproduce it
 
 ```bash
 ./scripts/demo.sh up --mode scripted
