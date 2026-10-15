@@ -78,6 +78,27 @@ Removing one carrier at a time shows they are independent:
   becomes the ASP.NET span. Nothing looks broken in a waterfall; only the parent-id check notices.
 - **Both removed:** every .NET span lands in one separate trace.
 
+Here is the headers-removed break as Logfire shows it (scripted run, so no model spend). At first glance the trace
+looks complete: every logical span is there, the .NET agent, the tool, SQL and HTTP all nest under the Python MCP
+call. The only visible damage is that the Python transport span `POST → 200` is now a **leaf**; in the baseline it
+had the .NET `POST /mcp/` under it. 18 spans instead of 19.
+
+![headers-removed in Logfire: the transport span has no child](img/logfire-headers-removed-trace.png)
+
+The .NET `tools/call` row still carries a link icon, and its *Related spans* panel looks exactly as it does in the
+baseline:
+
+![The link panel is identical to the baseline](img/logfire-headers-removed-link.png)
+
+Only following the link shows the split: it opens a different trace containing a single root span — the ASP.NET
+request, 791 ms, nothing above it and nothing below it. Its user agent (`python-httpx2/2.13.1`) is the only
+remaining hint of where it came from.
+
+![The orphaned HTTP server span, alone in its own trace](img/logfire-headers-removed-orphan.png)
+
+That is the argument for asserting on parent ids rather than eyeballing waterfalls: a lost transport carrier
+removes one row from a 19-row tree and adds a one-span trace somewhere else in the project.
+
 Both SDKs also behaved well with hostile input: garbage, truncated, all-zero and version-`ff` `_meta` values were
 discarded (the operation fell back to its HTTP parent), an all-zero header produced a fresh root, and conflicting
 header/`_meta` trace ids were never merged — each SDK honoured its own carrier, joined only by the link.

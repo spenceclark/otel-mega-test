@@ -139,7 +139,8 @@ Observed only in live mode:
   The agent-run panel shows messages as **Not captured**, consistent with content capture being off.
 - **Links are visible.** The .NET `tools/call build_availability_report` row shows a link icon, and its Details tab
   lists *Related spans → Links to → `POST /mcp/`* (clickable). In this baseline the link target is in the same
-  trace; the cross-trace case (`headers-removed`) was not inspected in the UI.
+  trace. In `headers-removed` (scripted + Logfire) the panel looks identical, but following the link opens a separate
+  one-span trace holding only the ASP.NET `POST /mcp/` span (screenshots in the article, section 4).
 - **Token roll-ups double-count.** The Σ badge on `ui.ask` reads **5,892 in / 735 out**, while the four model calls
   total 4,558 / 641. The `tools/call` subtree reads 4,274 / 427 = MAF's aggregate on `invoke_agent` (2,940 / 333)
   plus its first `chat` span (1,334 / 94) — the `gen_ai.usage.*` key collision above, visible in the UI.
