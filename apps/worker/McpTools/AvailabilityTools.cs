@@ -40,7 +40,7 @@ public sealed class AvailabilityTools(
         {
             AvailabilityReport report = await AvailabilityAnalyst.RunAsync(
                 modelFactory(productCode, zone), lookup.LookupAsync, productCode, zone,
-                settings.ContentCapture, settings.MaxOutputTokens, cancellationToken);
+                settings.MaxOutputTokens, cancellationToken);
             if (settings.Scenario == Scenarios.LogicalError)
             {
                 // Fault (logical-error): the work succeeded, but the tool reports a logical failure under HTTP 200.

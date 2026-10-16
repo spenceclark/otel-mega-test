@@ -40,7 +40,7 @@ longer uses — it would be the "transport mismatch" experiment), the Logfire SD
 | Providers | `Telemetry/WorkerTelemetry.cs`: `AddOpenTelemetry().WithTracing(…).WithLogging(…)`, `AddOtlpExporter()` from `OTEL_*` env | — | — |
 | HTTP server | `AddAspNetCoreInstrumentation` (`/healthz` filtered) | `POST /mcp/` SERVER, `http.route=/mcp/` | span linked from the MCP server span |
 | MCP message | MCP C# SDK 2.2.0, source `Experimental.ModelContextProtocol` | `tools/call build_availability_report` SERVER + link to `POST /mcp/`; app adds `demo.scenario`, `demo.mode`, `demo.outcome` | `mcp.method.name=tools/call`, SERVER |
-| Agent | MAF `ChatClientAgent.AsBuilder().UseOpenTelemetry(…)`, source `Experimental.Microsoft.Agents.AI`, `EnableSensitiveData = DEMO_CONTENT_CAPTURE` | `invoke_agent availability-analyst(availability-analyst)` CLIENT | `gen_ai.operation.name=invoke_agent` + `gen_ai.agent.name` |
+| Agent | MAF `ChatClientAgent.AsBuilder().UseOpenTelemetry(…)`, source `Experimental.Microsoft.Agents.AI`, `EnableSensitiveData = true`, reduced to message shape by `Telemetry/GenAiContentRedactor.cs` before export unless `DEMO_CONTENT_CAPTURE=true` | `invoke_agent availability-analyst(availability-analyst)` CLIENT | `gen_ai.operation.name=invoke_agent` + `gen_ai.agent.name` |
 | Model | M.E.AI `UseOpenTelemetry`, source `Experimental.Microsoft.Extensions.AI` | `chat scripted-analyst` CLIENT ×2 (no usage) | — |
 | Local tool | M.E.AI `FunctionInvokingChatClient` (on the agent's source) — **no** app wrapper | `execute_tool lookup_availability` INTERNAL; event `lookup_availability.join` | name |
 | SQL | `Npgsql.OpenTelemetry` `AddNpgsql()` | `postgresql` CLIENT (`db.system.name`, `db.namespace`, `db.query.text` with placeholders); `CONNECT demo` on first use | `db.system.name=postgresql` + `db.query.text` |
@@ -56,8 +56,6 @@ depends on a non-null `StartActivity()`.
   through the single `AddOpenTelemetry()` builder.
 - No duplicate spans for one operation in **scripted** mode: FastMCP's client span is disabled; the Anthropic .NET
   SDK's own OTel is off in live mode; fetch instrumentation is the only browser HTTP owner; no app `execute_tool`
-  wrapper. **Live mode exception (observed):** the Anthropic *Python* SDK 1.14.0 traces by default and adds
-  `anthropic.messages.create` under Pydantic AI's `chat` span — a second owner for the model call (see
-  [compatibility.md](compatibility.md#live-run-record-15-oct-2026-commit-3fd6e6a--live-fixes)). Fix when wanted:
-  `open_telemetry=False` on the Anthropic client.
+  wrapper. The Anthropic *Python* SDK 1.14.0 traces by default (a second owner for the model call, plus account
+  ids); the API builds its client with `open_telemetry=False`, so Pydantic AI's `chat` span is the only owner.
 - `one-request-per-trace` (concurrency run) asserts exactly one API server span and one MCP server operation per trace.

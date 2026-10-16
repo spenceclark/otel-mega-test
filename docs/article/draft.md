@@ -309,18 +309,24 @@ on the root reads 5,870 / 611. MAF reports the agent's *aggregate* usage on `inv
 `gen_ai.usage.*` keys its model spans use, so summing spans counts part of it twice. Pydantic AI uses
 `gen_ai.aggregated_usage.*` and doesn't collide.
 
-The default privacy setting differs in a way the UI makes visible. With content capture off, Pydantic AI
+The default privacy setting differed in a way the UI made visible. With content capture off, Pydantic AI
 *redacts*: it still exports the conversation's shape (roles, tool-call names, no text), so Logfire draws an
 *Agent Run* full of "Not captured" placeholders. MAF *omits*: no message attributes at all, so the .NET agent span
-in the same trace gets no conversation view, only its attributes. Neither leaks content. They just disagree on
-whether "off" means "redacted" or "absent". There is a twist: click the .NET MCP span `tools/call
+in the same trace got no conversation view, only its attributes. Neither leaked content; they disagreed on whether
+"off" means "redacted" or "absent". We made the .NET side match. The worker now records messages, and a small span
+processor registered *before* the OTLP exporter reduces them to their shape: roles, part types, tool-call ids and
+names stay; text, tool arguments, tool results and system instructions go. If a value can't be parsed, it is
+dropped rather than exported. The content never leaves the process, the canary scan still finds nothing, and
+Logfire now draws the .NET agent as well:
+
+![The .NET agent in Logfire with content capture off: shape only](img/logfire-redacted-analyst.png) There is a twist: click the .NET MCP span `tools/call
 build_availability_report` and Logfire *does* open an Agent Run, but it is the Python router's. The C# SDK labels
 the span as a tool execution (`gen_ai.operation.name=execute_tool`, per the MCP conventions). Logfire shows the run
 that owns a tool execution, and it finds that run by walking parent ids across the process boundary. The view
 lands on the right conversation for the wrong-looking span, which is a quiet confirmation that the parents are
-intact. The same dump showed that the Anthropic Python SDK's default-on spans
-carry the account's `anthropic.organization.id` and `anthropic.workspace.id`, identifiers worth keeping out of a
-shared telemetry project.
+intact. The same attribute dump showed that the Anthropic Python SDK's default-on spans carried the account's
+`anthropic.organization.id` and `anthropic.workspace.id`. That, plus the duplicate model span, was enough to turn
+them off (`open_telemetry=False`). A click today produces 21 spans instead of the 23 shown in section 3.
 
 Content capture is off in both frameworks by default; the laboratory's `privacy` experiment shows that turning it
 on leaks prompt, completion, tool-result and summary canaries into span attributes, while the header canary never
@@ -341,8 +347,9 @@ off right after that click.
 Continuity held across every boundary of a real click, but only after we wrote the instrumentation for the one
 boundary the ecosystem does not yet cover. One click is one trace: 23 spans, four services, every parent correct,
 the two I/O branches overlapping by 325 ms, and five simultaneous clicks staying five separate traces. Live models
-added two things scripted ones never showed. The Anthropic Python SDK now traces itself by default, adding a second
-span under each Pydantic AI model call, and a model can decide to call a tool twice at once.
+added things scripted ones never showed: the Anthropic Python SDK traced itself by default (a second span under each
+Pydantic AI model call, carrying account ids, now switched off), and a model can decide to call a tool twice at
+once.
 
 Logfire agreed with the raw evidence on every structural point: one waterfall across four services, the MCP link,
 both agents on its Agents page, and span durations that match the Collector file to the millisecond. Three of its display choices need

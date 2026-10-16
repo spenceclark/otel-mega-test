@@ -11,7 +11,7 @@ using Worker.Tools;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 DemoSettings settings = DemoSettings.FromConfiguration(builder.Configuration); // fails fast on bad DEMO_* values
 builder.Services.AddSingleton(settings);
-builder.AddWorkerTelemetry();
+builder.AddWorkerTelemetry(settings.ContentCapture);
 
 builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(settings.DbConnection));
 builder.Services.AddSingleton<StockRepository>();

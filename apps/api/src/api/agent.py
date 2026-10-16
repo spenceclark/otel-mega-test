@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 import fastmcp
 import httpx2
+from anthropic import AsyncAnthropic
 from opentelemetry import trace
 from pydantic_ai import Agent
 from pydantic_ai.capabilities import Instrumentation
@@ -120,8 +121,14 @@ async def connect(settings: Settings) -> AsyncGenerator[Router]:
     live_model = (
         AnthropicModel(
             settings.model_id,
+            # open_telemetry=False: Pydantic AI's `chat` span owns the model call. The SDK's own default-on span
+            # duplicated it and recorded the account's organization and workspace ids.
             provider=AnthropicProvider(
-                api_key=os.environ["ANTHROPIC_API_KEY"], base_url=os.environ.get("ANTHROPIC_BASE_URL") or None
+                anthropic_client=AsyncAnthropic(
+                    api_key=os.environ["ANTHROPIC_API_KEY"],
+                    base_url=os.environ.get("ANTHROPIC_BASE_URL") or None,
+                    open_telemetry=False,
+                )
             ),
         )
         if settings.mode == "live"

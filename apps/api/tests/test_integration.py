@@ -12,6 +12,7 @@ import pytest
 from opentelemetry import baggage, context, trace
 from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.trace import SpanKind
+from pydantic_ai.models.anthropic import AnthropicModel
 
 from api.agent import Settings, connect
 from api.models import AskRequest, AvailabilityReport
@@ -178,9 +179,12 @@ def test_live_mode_constructs_anthropic_model(mcp_server: InProcessMcp, monkeypa
     """Live mode cannot run offline; only its construction is exercised (no request is sent)."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-not-a-secret")
 
-    async def build() -> str | None:
+    async def build() -> tuple[str | None, bool | None]:
         live = dataclasses.replace(settings("baseline", mcp_server.url), mode="live", model_id="claude-haiku-5-5")
         async with connect(live) as router:
-            return router.live_model.model_name if router.live_model else None
+            if not isinstance(router.live_model, AnthropicModel):
+                return None, None
+            # The Anthropic SDK's own spans stay off; Pydantic AI's `chat` span is the single owner of the call.
+            return router.live_model.model_name, router.live_model.client.open_telemetry["traces"]["enabled"]
 
-    assert asyncio.run(build()) == "claude-haiku-5-5"
+    assert asyncio.run(build()) == ("claude-haiku-5-5", False)

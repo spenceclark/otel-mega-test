@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Worker.Agents;
+using Worker.Telemetry;
 using Worker.Tools;
 
 namespace Worker.Tests;
@@ -47,7 +48,7 @@ public class AnalystTests
                     Assert.Equal((ProductCode.DemoTent, DestinationZone.DemoEast), (product, zone));
                     return Task.FromResult(_lookup);
                 },
-                ProductCode.DemoTent, DestinationZone.DemoEast, enableSensitiveData: false, maxOutputTokens: 512,
+                ProductCode.DemoTent, DestinationZone.DemoEast, maxOutputTokens: 512,
                 TestContext.Current.CancellationToken);
         }
 
@@ -65,6 +66,29 @@ public class AnalystTests
             Names(AvailabilityAnalyst.AgentSourceName));
         Assert.Equal("chat scripted-analyst | chat scripted-analyst", Names(AvailabilityAnalyst.ChatSourceName));
         Assert.DoesNotContain(spans, s => s.TagObjects.Any(t => t.Key.StartsWith("gen_ai.usage", StringComparison.Ordinal)));
+
+        // Messages are recorded; with content capture off the redactor leaves their shape and nothing else.
+        string Exported() => string.Join('\n', spans.SelectMany(a => a.TagObjects).Select(t => $"{t.Key}={t.Value}"));
+        Assert.Contains(ScriptedChatClient.SummaryCanary, Exported());
+        var redactor = new GenAiContentRedactor();
+        foreach (Activity span in spans)
+        {
+            redactor.OnEnd(span);
+        }
+        string redacted = Exported();
+        Assert.DoesNotContain(ScriptedChatClient.SummaryCanary, redacted); // model output text
+        Assert.DoesNotContain("DEMO-WH-1", redacted); // tool result
+        Assert.DoesNotContain("gen_ai.tool.call.arguments", redacted);
+        Assert.DoesNotContain("gen_ai.system_instructions", redacted);
+        Assert.Contains("\"name\":\"lookup_availability\"", redacted); // tool-call shape kept
+        Assert.Contains("gen_ai.input.messages=[{\"role\":\"user\",\"parts\":[{\"type\":\"text\"}]}", redacted);
+    }
+
+    [Fact]
+    public void Redactor_drops_message_attributes_it_cannot_parse()
+    {
+        Assert.Null(GenAiContentRedactor.Shape("not json"));
+        Assert.Null(GenAiContentRedactor.Shape("{\"role\":\"user\"}"));
     }
 
     [Fact]
@@ -73,7 +97,7 @@ public class AnalystTests
         LookupFailedException ex = await Assert.ThrowsAsync<LookupFailedException>(() => AvailabilityAnalyst.RunAsync(
             new ScriptedChatClient(ProductCode.DemoKettle, DestinationZone.DemoSouth),
             (_, _, _) => Task.FromException<LookupResult>(new LookupFailedException("timeout")),
-            ProductCode.DemoKettle, DestinationZone.DemoSouth, enableSensitiveData: false, maxOutputTokens: 512,
+            ProductCode.DemoKettle, DestinationZone.DemoSouth, maxOutputTokens: 512,
             TestContext.Current.CancellationToken));
         Assert.Equal("timeout", ex.Reason);
     }

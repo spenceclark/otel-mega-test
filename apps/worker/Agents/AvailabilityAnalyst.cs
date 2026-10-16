@@ -26,7 +26,6 @@ public static class AvailabilityAnalyst
         Func<ProductCode, DestinationZone, CancellationToken, Task<LookupResult>> lookup,
         ProductCode productCode,
         DestinationZone zone,
-        bool enableSensitiveData,
         int maxOutputTokens,
         CancellationToken cancellationToken)
     {
@@ -67,7 +66,9 @@ public static class AvailabilityAnalyst
         // chat client is already instrumented so it does not auto-wire a second chat span.
         IChatClient chatClient = model.AsBuilder()
             .UseFunctionInvocation(configure: f => f.MaximumIterationsPerRequest = 3)
-            .UseOpenTelemetry(sourceName: ChatSourceName, configure: o => o.EnableSensitiveData = enableSensitiveData)
+            // Messages are always recorded; GenAiContentRedactor reduces them to their shape before export unless
+            // DEMO_CONTENT_CAPTURE is on (Pydantic AI-style redaction instead of omitting them).
+            .UseOpenTelemetry(sourceName: ChatSourceName, configure: o => o.EnableSensitiveData = true)
             .Build();
 
         AIAgent agent = new ChatClientAgent(chatClient, new ChatClientAgentOptions
@@ -77,7 +78,7 @@ public static class AvailabilityAnalyst
             ChatOptions = new ChatOptions { Instructions = Instructions, Tools = [lookupTool], MaxOutputTokens = maxOutputTokens },
         })
             .AsBuilder()
-            .UseOpenTelemetry(AgentSourceName, a => a.EnableSensitiveData = enableSensitiveData)
+            .UseOpenTelemetry(AgentSourceName, a => a.EnableSensitiveData = true)
             .Build();
 
         AgentResponse<AvailabilityReport> response = await agent.RunAsync<AvailabilityReport>(
