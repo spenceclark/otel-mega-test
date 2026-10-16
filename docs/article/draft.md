@@ -313,7 +313,12 @@ The default privacy setting differs in a way the UI makes visible. With content 
 *redacts*: it still exports the conversation's shape (roles, tool-call names, no text), so Logfire draws an
 *Agent Run* full of "Not captured" placeholders. MAF *omits*: no message attributes at all, so the .NET agent span
 in the same trace gets no conversation view, only its attributes. Neither leaks content. They just disagree on
-whether "off" means "redacted" or "absent". The same dump showed that the Anthropic Python SDK's default-on spans
+whether "off" means "redacted" or "absent". There is a twist: click the .NET MCP span `tools/call
+build_availability_report` and Logfire *does* open an Agent Run, but it is the Python router's. The C# SDK labels
+the span as a tool execution (`gen_ai.operation.name=execute_tool`, per the MCP conventions). Logfire shows the run
+that owns a tool execution, and it finds that run by walking parent ids across the process boundary. The view
+lands on the right conversation for the wrong-looking span, which is a quiet confirmation that the parents are
+intact. The same dump showed that the Anthropic Python SDK's default-on spans
 carry the account's `anthropic.organization.id` and `anthropic.workspace.id`, identifiers worth keeping out of a
 shared telemetry project.
 
