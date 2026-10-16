@@ -309,6 +309,14 @@ on the root reads 5,870 / 611. MAF reports the agent's *aggregate* usage on `inv
 `gen_ai.usage.*` keys its model spans use, so summing spans counts part of it twice. Pydantic AI uses
 `gen_ai.aggregated_usage.*` and doesn't collide.
 
+The default privacy setting differs in a way the UI makes visible. With content capture off, Pydantic AI
+*redacts*: it still exports the conversation's shape (roles, tool-call names, no text), so Logfire draws an
+*Agent Run* full of "Not captured" placeholders. MAF *omits*: no message attributes at all, so the .NET agent span
+in the same trace gets no conversation view, only its attributes. Neither leaks content. They just disagree on
+whether "off" means "redacted" or "absent". The same dump showed that the Anthropic Python SDK's default-on spans
+carry the account's `anthropic.organization.id` and `anthropic.workspace.id`, identifiers worth keeping out of a
+shared telemetry project.
+
 Content capture is off in both frameworks by default; the laboratory's `privacy` experiment shows that turning it
 on leaks prompt, completion, tool-result and summary canaries into span attributes, while the header canary never
 appears in either setting. With capture switched on for one real click, Logfire turns the same attributes into
