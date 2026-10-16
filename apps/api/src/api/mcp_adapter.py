@@ -1,91 +1,49 @@
-"""Narrow httpx2 transport hook for the MCP client's HTTP hop.
+"""Transport for the MCP client's HTTP hop, with the explicit fault seam for the carrier-removal scenarios.
 
-removal condition: delete when an official httpx2 OpenTelemetry instrumentor ships.
+The HTTP CLIENT span and the `traceparent` header on POST /mcp come from OpenTelemetry's own
+`HTTPX2ClientInstrumentor` (opentelemetry-instrumentation-httpx), applied to the MCP client with
+`instrument_client`. It wraps whatever transport the client has, so it creates the span and injects first; this
+seam sits underneath and can then remove a carrier on purpose. The message carrier (`params._meta`) belongs to the
+mcp SDK.
 
-Phase-zero gap: FastMCP 4 / mcp 2.x send over httpx2, which has no OpenTelemetry instrumentor, so without this
-nothing creates an HTTP CLIENT span or injects `traceparent` on POST /mcp. The MCP message carrier
-(`params._meta`) is injected by the mcp SDK itself; this module only adds the transport carrier.
-
-It is also the explicit fault seam for the carrier-removal scenarios (fixed at construction):
-  headers-removed  no header injection, inbound traceparent/tracestate headers stripped; `_meta` kept
+  headers-removed  traceparent/tracestate headers stripped after injection; `_meta` kept
   meta-removed     `params._meta.traceparent`/`tracestate` dropped from JSON-RPC bodies; headers kept
   both-removed     both
+
+Every other scenario gets the plain httpx2 transport: no wrapper, no behaviour of our own.
 """
 
 import json
-from collections.abc import AsyncIterator
 from typing import Any, TypeGuard
 
 import httpx2
-from opentelemetry import propagate, trace
-from opentelemetry.trace import Span, SpanKind, StatusCode
 
 _TRACE_KEYS = ("traceparent", "tracestate")
-_tracer = trace.get_tracer(__name__)
+_FAULTS = ("headers-removed", "meta-removed", "both-removed")
 
 
-class TracingTransport(httpx2.AsyncBaseTransport):
-    def __init__(self, scenario: str, inner: httpx2.AsyncBaseTransport | None = None) -> None:
-        self._inject_headers = scenario not in ("headers-removed", "both-removed")
+def mcp_transport(scenario: str, inner: httpx2.AsyncBaseTransport | None = None) -> httpx2.AsyncBaseTransport:
+    """The transport for the MCP client: plain httpx2, or the fault seam around it for the carrier scenarios."""
+    base = inner or httpx2.AsyncHTTPTransport()
+    return _CarrierFault(scenario, base) if scenario in _FAULTS else base
+
+
+class _CarrierFault(httpx2.AsyncBaseTransport):
+    def __init__(self, scenario: str, inner: httpx2.AsyncBaseTransport) -> None:
+        self._strip_headers = scenario in ("headers-removed", "both-removed")
         self._strip_meta = scenario in ("meta-removed", "both-removed")
-        self._inner = inner or httpx2.AsyncHTTPTransport()
+        self._inner = inner
 
     async def handle_async_request(self, request: httpx2.Request) -> httpx2.Response:
-        url = request.url
-        port = url.port or (443 if url.scheme == "https" else 80)
-        span = _tracer.start_span(
-            request.method,
-            kind=SpanKind.CLIENT,
-            attributes={
-                "http.request.method": request.method,
-                "url.full": f"{url.scheme}://{url.host}:{port}{url.path}",  # no userinfo, no query
-                "server.address": url.host,
-                "server.port": port,
-            },
-        )
-        try:
-            # request.headers belongs to this request only (the client copies its defaults into it).
+        if self._strip_headers:
             for key in _TRACE_KEYS:
                 request.headers.pop(key, None)
-            if self._inject_headers:
-                carrier: dict[str, str] = {}
-                propagate.inject(carrier, context=trace.set_span_in_context(span))
-                request.headers.update(carrier)
-            if self._strip_meta:
-                request = _strip_meta(request)
-            response = await self._inner.handle_async_request(request)
-        except BaseException as exc:
-            span.set_attribute("error.type", type(exc).__qualname__)
-            span.set_status(StatusCode.ERROR)
-            span.end()
-            raise
-
-        span.set_attribute("http.response.status_code", response.status_code)
-        if response.status_code >= 500:
-            span.set_attribute("error.type", str(response.status_code))
-            span.set_status(StatusCode.ERROR)
-        # MCP answers tools/call on the response body (often SSE), so the span covers the body, not just headers.
-        if response.is_closed or not isinstance(response.stream, httpx2.AsyncByteStream):
-            span.end()  # body already in hand (pre-read response)
-        else:
-            response.stream = _EndSpanOnClose(response.stream, span)
-        return response
-
-
-class _EndSpanOnClose(httpx2.AsyncByteStream):
-    def __init__(self, inner: httpx2.AsyncByteStream, span: Span) -> None:
-        self._inner = inner
-        self._span = span
-
-    async def __aiter__(self) -> AsyncIterator[bytes]:
-        async for chunk in self._inner:
-            yield chunk
+        if self._strip_meta:
+            request = _strip_meta(request)
+        return await self._inner.handle_async_request(request)
 
     async def aclose(self) -> None:
-        try:
-            await self._inner.aclose()
-        finally:
-            self._span.end()
+        await self._inner.aclose()
 
 
 def _strip_meta(request: httpx2.Request) -> httpx2.Request:

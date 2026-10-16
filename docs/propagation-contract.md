@@ -16,7 +16,7 @@ api        └ invoke_agent request-router              INTERNAL  Pydantic AI   
 api          ├ chat scripted-router                   CLIENT    scripted FunctionModel          15 ms
 api          ├ execute_tool build_availability_report INTERNAL  Pydantic AI                    761 ms
 api          │ └ MCP send tools/call build_availa…    CLIENT    mcp SDK  ← params._meta parent 709 ms
-api          │   ├ POST                               CLIENT    httpx2 adapter ← header parent 709 ms
+api          │   ├ POST                               CLIENT    httpx2 instrumentor ← header parent 709 ms
 worker       │   │ └ POST /mcp/                       SERVER    ASP.NET Core                   705 ms
 worker       │   └ tools/call build_availability_report SERVER  MCP C# SDK (link → POST /mcp/) 701 ms
 worker       │     └ invoke_agent availability-analyst(…) CLIENT MAF                          582 ms
@@ -42,7 +42,7 @@ message carrier; the HTTP server span is related by a **link**, not by parentage
 | 2 | browser → API | `@opentelemetry/instrumentation-fetch` CLIENT `POST` | fetch instrumentation, **header** `traceparent` (W3C only, no baggage; same-origin so no CORS allowlist needed) | FastAPI/ASGI instrumentation | parent = browser CLIENT span | `browser-client->api-server` |
 | 3 | API → agent → tool | Pydantic AI `invoke_agent`, `chat`, `execute_tool` | in-process context | — | ambient context | `agent-ancestry` |
 | 4 | MCP message | `mcp` SDK CLIENT `MCP send tools/call <tool>` | `mcp` dispatcher: `propagate.inject(params._meta)` per message, existing `_meta` keys preserved | C# SDK `McpSessionHandler`: `extract(params._meta)` | parent = `MCP send` span; **link** to current HTTP server activity | `mcp-message-parent`, `mcp-http-link` |
-| 5 | MCP transport | app adapter `TracingTransport` CLIENT `POST` (httpx2) | adapter: `propagate.inject` into a **fresh carrier per request**, set on that request's headers only | ASP.NET Core instrumentation | parent = Python `POST` CLIENT span | `api-http-client->worker-http-server` |
+| 5 | MCP transport | OpenTelemetry `HTTPX2ClientInstrumentor` (opentelemetry-instrumentation-httpx), applied with `instrument_client` to the MCP client only: CLIENT `POST` | the instrumentor: the span's context into a **fresh carrier per request**, on that request's headers only | ASP.NET Core instrumentation | parent = Python `POST` CLIENT span | `api-http-client->worker-http-server` |
 | 6 | MCP op → MAF agent → tool | MAF `invoke_agent`, M.E.AI `chat`, `execute_tool` | in-process (`Activity.Current`) | — | ambient | `agent-ancestry` |
 | 7 | tool → SQL ∥ HTTP | Npgsql CLIENT, HttpClient CLIENT | `ExecutionContext` flows into both branch tasks, which are created while `execute_tool` is current | — | ambient; tool span ends after `Task.WhenAll` | `io-under-tool`, `io-overlap` |
 | 8 | worker → shipping stub | HttpClient CLIENT `GET` | HttpClient instrumentation header | FastAPI | parent = worker `GET` | `shipping-server-hop` |
@@ -53,8 +53,8 @@ design: the header represents the nested HTTP client operation. Nothing copies o
 
 ## Rules every runtime follows
 
-1. **Per-request carriers.** No trace header is ever stored on a client's default headers. The httpx2 adapter
-   builds a new carrier per request from the span it just started; the long-lived shared MCP client is
+1. **Per-request carriers.** No trace header is ever stored on a client's default headers. The httpx2 instrumentor
+   injects a new carrier per request from the span it just started; the long-lived shared MCP client is
    exercised by `concurrency` (20 simultaneous submissions, `no-cross-trace-parents`, `one-request-per-trace`).
 2. **Baggage off.** `OTEL_PROPAGATORS=tracecontext` (Python, verified in tests); explicit
    `W3CTraceContextPropagator` in the browser; .NET's default propagator is W3C and nothing adds baggage.
@@ -72,7 +72,7 @@ design: the header represents the nested HTTP client operation. Nothing copies o
 
 | Scenario | Seam | Effect |
 |---|---|---|
-| `headers-removed` | `apps/api/src/api/mcp_adapter.py` | no header injection, inbound trace headers stripped |
+| `headers-removed` | `apps/api/src/api/mcp_adapter.py` (seam *under* the instrumentor) | strips the trace headers after the instrumentor injected them |
 | `meta-removed` | same | drops only `traceparent`/`tracestate` from `params._meta` (other `_meta` keys preserved; unit-tested) |
 | `both-removed` | same | both |
 | `context-detached` | `apps/worker/Tools/LookupAvailability.cs` | HTTP branch created under `ExecutionContext.SuppressFlow()` + `Task.Yield()` |

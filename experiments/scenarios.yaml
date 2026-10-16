@@ -18,19 +18,19 @@ scenarios:
   headers-removed:
     hypothesis: The HTTP header carrier and the MCP message carrier are independent; removing headers only orphans the .NET HTTP server span.
     owner: api (apps/api/src/api/mcp_adapter.py)
-    fault: The httpx2 transport hook skips traceparent/tracestate header injection on POST /mcp; params._meta is untouched.
+    fault: The fault seam under the httpx2 instrumentor strips the traceparent/tracestate headers it injected on POST /mcp; params._meta is untouched.
     env: { DEMO_SCENARIO: headers-removed }
     spec: ask.spec.ts
     profile: baseline
     expected_graph: The .NET ASP.NET server span for POST /mcp roots a new trace; the MCP server operation stays in the browser trace via _meta and links across to it.
     expect_fail: [api-http-client->worker-http-server]
     expect_pass: [required-spans, mcp-message-parent, io-overlap]
-    fix: Restore header injection in the transport hook (DEMO_SCENARIO=baseline).
+    fix: Remove the seam (DEMO_SCENARIO=baseline) so the instrumentor's header reaches the server.
 
   meta-removed:
     hypothesis: Without params._meta the C# MCP server falls back to the ambient HTTP server activity, so continuity survives through headers but message parentage changes.
     owner: api (apps/api/src/api/mcp_adapter.py)
-    fault: The transport hook deletes only traceparent/tracestate from params._meta of outgoing JSON-RPC requests; headers untouched.
+    fault: The fault seam deletes only traceparent/tracestate from params._meta of outgoing JSON-RPC requests; headers untouched.
     env: { DEMO_SCENARIO: meta-removed }
     spec: ask.spec.ts
     profile: baseline

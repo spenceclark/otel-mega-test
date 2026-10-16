@@ -1,7 +1,11 @@
 # 0001 — A narrow httpx2 transport hook for the Python→.NET HTTP hop
 
-**Status:** accepted (15 Oct 2026). **Removal condition:** delete `apps/api/src/api/mcp_adapter.py` when an official
-OpenTelemetry instrumentor for httpx2 ships and the `api-http-client->worker-http-server` check passes with it.
+**Status:** superseded (16 Oct 2026). The removal condition was already met when this was written: OpenTelemetry's
+`opentelemetry-instrumentation-httpx` 0.66b1 (6 Oct 2026) ships `HTTPX2ClientInstrumentor`. Phase zero looked only at
+the empty `opentelemetry-instrumentation-httpx2` placeholder and assumed the httpx package covered legacy httpx only.
+The API now calls `HTTPX2ClientInstrumentor.instrument_client(...)` on the MCP client; `mcp_adapter.py` keeps only the
+experiments' fault seam, placed *under* the instrumentor. `api-http-client->worker-http-server`, all three carrier
+experiments and the 20-way concurrency check pass with it. The original record follows.
 
 ## Context
 Pydantic AI 2.56 → FastMCP 4.1 → mcp 2.3 send MCP over **httpx2**. Phase zero found no instrumentor for it

@@ -11,7 +11,7 @@
 | `required-spans` with "no candidate spans … (export loss or not emitted)" | the service never exported (wrong endpoint, Collector down) or the instrumentation/source is not registered | `docker compose logs <service>` for exporter errors; `AddSource` list in the worker |
 | `parents-resolve` "dangling parents … EXPORT loss" | children carry the right trace id but their parent's process didn't export | that parent's exporter config (`export-failure` experiment reproduces it) |
 | `browser-client->api-server` | `traceparent` not sent (fetch propagation allowlist / CORS) or FastAPI instrumentation not applied before serving | request headers in the browser devtools; `apps/api/src/api/main.py` |
-| `api-http-client->worker-http-server` | the httpx2 transport hook is not on the MCP client, or the scenario `headers-removed` is active | `apps/api/src/api/mcp_adapter.py`, `GET /api/config` |
+| `api-http-client->worker-http-server` | `HTTPX2ClientInstrumentor.instrument_client` was not applied to the MCP client (`apps/api/src/api/agent.py`), or the scenario `headers-removed` is active | `apps/api/src/api/mcp_adapter.py`, `GET /api/config` |
 | `mcp-message-parent` | `params._meta.traceparent` missing (falls back to the HTTP server activity) or the MCP ActivitySource is not listened to | scenario `meta-removed`; `Experimental.ModelContextProtocol` in the worker's sources |
 | `io-overlap` | branches serialized (`serial-io`) or the delay is not carried by the operations themselves | tool code; fixture delays `DEMO_SQL_DELAY_MS`, `DEMO_SHIPPING_DELAY_MS` |
 | `io-under-tool` | a branch was started without the tool's execution context (`context-detached`) | `apps/worker/Tools/LookupAvailability.cs` |

@@ -9,6 +9,7 @@ import fastmcp
 import httpx2
 from anthropic import AsyncAnthropic
 from opentelemetry import trace
+from opentelemetry.instrumentation.httpx import HTTPX2ClientInstrumentor
 from pydantic_ai import Agent
 from pydantic_ai.capabilities import Instrumentation
 from pydantic_ai.mcp import MCPToolset
@@ -21,7 +22,7 @@ from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.usage import UsageLimits
 
-from api.mcp_adapter import TracingTransport
+from api.mcp_adapter import mcp_transport
 from api.models import SCENARIOS, AskRequest, AvailabilityReport, BuildAvailabilityReportArgs, Mode
 
 TOOL = "build_availability_report"
@@ -137,8 +138,12 @@ async def connect(settings: Settings) -> AsyncGenerator[Router]:
     # The toolset borrows this client and ignores FastMCP's timeouts, so no read timeout here:
     # DEMO_REQUEST_TIMEOUT_SECONDS around the run is the deadline, and the GET stream may idle.
     async with httpx2.AsyncClient(
-        transport=TracingTransport(settings.scenario), timeout=httpx2.Timeout(5, read=None)
+        transport=mcp_transport(settings.scenario), timeout=httpx2.Timeout(5, read=None)
     ) as http_client:
+        # HTTP CLIENT span + per-request traceparent header on POST /mcp, for this client only (the Anthropic
+        # client and anything else on httpx2 stay uninstrumented). Must wrap the fault seam, not sit under it.
+        # `client` is annotated with legacy httpx types (not installed here), hence the unknown-member ignore.
+        HTTPX2ClientInstrumentor.instrument_client(http_client)  # pyright: ignore[reportUnknownMemberType]
         # 'error' surfaces server tool failures as fastmcp ToolError (mapped to tool_error) instead of
         # retrying through the model.
         toolset = MCPToolset(settings.mcp_url, tool_error_behavior="error", http_client=http_client)

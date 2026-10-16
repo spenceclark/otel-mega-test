@@ -7,6 +7,8 @@ x-otel-env: &otel-env
   OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
   OTEL_PROPAGATORS: tracecontext
   OTEL_TRACES_SAMPLER: parentbased_always_on
+  # Stable HTTP attribute names from the Python FastAPI and httpx2 instrumentors (.NET already emits them).
+  OTEL_SEMCONV_STABILITY_OPT_IN: http
   OTEL_RESOURCE_ATTRIBUTES: service.namespace=trace-continuity-demo,deployment.environment.name=${DEMO_ENVIRONMENT:-local},service.version=${GIT_SHA:-dev}
   DEMO_MODE: ${DEMO_MODE:-scripted}
   DEMO_SCENARIO: ${DEMO_SCENARIO:-baseline}

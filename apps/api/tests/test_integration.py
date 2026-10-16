@@ -91,7 +91,8 @@ def test_carriers(scenario: str, mcp_server: InProcessMcp, captured: Telemetry) 
     meta: dict[str, Any] = seen.json["params"]["_meta"]
 
     send = one(spans, SEND, SpanKind.CLIENT)
-    [http] = [s for s in spans if s.instrumentation_scope and s.instrumentation_scope.name == "api.mcp_adapter"]
+    httpx_scope = "opentelemetry.instrumentation.httpx"  # the official HTTPX2ClientInstrumentor
+    [http] = [s for s in spans if s.instrumentation_scope and s.instrumentation_scope.name == httpx_scope]
     assert http.name == "POST"
     assert http.kind == SpanKind.CLIENT
     assert http.parent and http.parent.span_id == ctx(send).span_id

@@ -26,12 +26,12 @@ not on a total span count.
 | Model | Pydantic AI | `chat scripted-router` CLIENT ×2, `gen_ai.provider.name=function`, estimated usage, app adds `demo.model.synthetic=true` | — |
 | Tool | Pydantic AI | `execute_tool build_availability_report` INTERNAL | ancestor of the MCP CLIENT span |
 | MCP message | `mcp` 2.3.0 dispatcher (native; FastMCP spans disabled via `telemetry_mode="propagation_only"`) | `MCP send tools/call build_availability_report` CLIENT, `mcp.method.name`, `jsonrpc.request.id`; injects `params._meta` | `mcp.method.name=tools/call`, CLIENT |
-| MCP transport | **app adapter** `api.mcp_adapter.TracingTransport` (httpx2 has no instrumentor) | `POST` CLIENT, stable HTTP semconv, sanitized `url.full`; injects the header | CLIENT with `url.full` containing `/mcp` |
+| MCP transport | OpenTelemetry `HTTPX2ClientInstrumentor.instrument_client(...)` on the MCP client only (opentelemetry-instrumentation-httpx 0.66b1); `api.mcp_adapter` is just the fault seam underneath | `POST` CLIENT, scope `opentelemetry.instrumentation.httpx`, stable HTTP semconv with `OTEL_SEMCONV_STABILITY_OPT_IN=http`, userinfo redacted in `url.full`; injects the header; ends when response headers arrive | CLIENT with `url.full` containing `/mcp` |
 | Logs | stdlib `logging` | `ask received` / `ask completed` (`demo.run_id`, `demo.scenario`, `demo.outcome`, `demo.duration_ms`); shipping: `quote served` | trace/span id |
 | Shipping server | `FastAPIInstrumentor` (same image, `api.shipping_stub`) | `GET /quotes/{zone}` SERVER | SERVER in `trace-demo-shipping` |
 
-Deliberately **not** installed: `opentelemetry-instrumentation-httpx` (instruments legacy httpx, which MCP no
-longer uses — it would be the "transport mismatch" experiment), the Logfire SDK (one provider only).
+Deliberately **not** used: the global `HTTPX2ClientInstrumentor().instrument()` (the Anthropic client also runs on
+httpx2; only the MCP client is instrumented), and the Logfire SDK (one provider only).
 
 ## .NET — `trace-demo-worker` (`apps/worker`)
 

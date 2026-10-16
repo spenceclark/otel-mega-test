@@ -179,8 +179,14 @@ def is_mcp_call_server(s: Span) -> bool:
     return s.service == WORKER and s.kind == SERVER and s.attrs.get("mcp.method.name") == "tools/call"
 
 
+def http_attr(s: Span, stable: str, old: str) -> Any:
+    """HTTP attribute under its stable semconv name, or the pre-1.0 name an instrumentor emits by default."""
+    return s.attrs.get(stable, s.attrs.get(old))
+
+
 def is_api_http_client(s: Span) -> bool:
-    return s.service == API and s.kind == CLIENT and "http.request.method" in s.attrs and "/mcp" in str(s.attrs.get("url.full", ""))
+    method = http_attr(s, "http.request.method", "http.method")
+    return s.service == API and s.kind == CLIENT and method is not None and "/mcp" in str(http_attr(s, "url.full", "http.url") or "")
 
 
 def is_agent(s: Span, name: str) -> bool:
@@ -372,13 +378,13 @@ def check_run(run: dict[str, Any], spans: list[Span], logs: list[Log], profile: 
                 and mcp_server
                 and mcp_server.status == STATUS_ERROR
                 and http_client
-                and http_client.attrs.get("http.response.status_code") == 200
+                and http_attr(http_client, "http.response.status_code", "http.status_code") == 200
                 and http_client.status != STATUS_ERROR
             ),
             f"api outcome={outcome}; api {_desc(api_tool)} status={api_tool.status if api_tool else None}; "
             f"MCP client status={mcp_client.status if mcp_client else None}; MCP server status={mcp_server.status if mcp_server else None} "
             f"error.type={mcp_server.attrs.get('error.type') if mcp_server else None}; HTTP client status_code="
-            f"{http_client.attrs.get('http.response.status_code') if http_client else None} status={http_client.status if http_client else None}",
+            f"{http_attr(http_client, 'http.response.status_code', 'http.status_code') if http_client else None} status={http_client.status if http_client else None}",
         )
     else:
         add("outcome-ok", outcome == "ok", f"api demo.outcome={outcome}")

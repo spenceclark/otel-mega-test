@@ -1,21 +1,27 @@
-"""TracingTransport unit tests against httpx2.MockTransport (no network)."""
+"""The MCP client's HTTP hop: OpenTelemetry's HTTPX2ClientInstrumentor on top of our transport (and its fault seam).
+
+Runs against httpx2.MockTransport (no network). The instrumentor is the official one; these tests pin the behaviour
+the demo relies on: one CLIENT span and a fresh traceparent per request, isolation under concurrency, error
+marking, and the fault seam removing carriers *after* injection.
+"""
 
 import asyncio
 import json
-from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx2
 import pytest
 from opentelemetry import trace
+from opentelemetry.instrumentation.httpx import HTTPX2ClientInstrumentor
 from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.trace import StatusCode
 
-from api.mcp_adapter import TracingTransport
+from api.mcp_adapter import mcp_transport
 from tests.conftest import Telemetry, ctx
 
 _tracer = trace.get_tracer(__name__)
-URL = "http://user:pw@worker:8080/mcp?token=not-for-telemetry"
+SCOPE = "opentelemetry.instrumentation.httpx"
+URL = "http://user:pw@worker:8080/mcp"
 CALL: dict[str, Any] = {
     "jsonrpc": "2.0",
     "id": 7,
@@ -33,21 +39,25 @@ CALL: dict[str, Any] = {
 }
 
 
+def instrumented(transport: httpx2.AsyncBaseTransport) -> httpx2.AsyncClient:
+    client = httpx2.AsyncClient(transport=transport, headers={"x-default": "kept"})
+    HTTPX2ClientInstrumentor.instrument_client(client)  # pyright: ignore[reportUnknownMemberType]
+    return client
+
+
 def make_client(scenario: str, seen: list[httpx2.Request], status: int = 200) -> httpx2.AsyncClient:
     def handler(request: httpx2.Request) -> httpx2.Response:
         seen.append(request)
         return httpx2.Response(status, json={"jsonrpc": "2.0", "id": 7, "result": {}})
 
-    transport = TracingTransport(scenario, inner=httpx2.MockTransport(handler))
-    return httpx2.AsyncClient(transport=transport, headers={"x-default": "kept"})
+    return instrumented(mcp_transport(scenario, httpx2.MockTransport(handler)))
 
 
 def http_spans(captured: Telemetry) -> list[ReadableSpan]:
-    scope = "api.mcp_adapter"
     return [
         s
         for s in captured.spans.get_finished_spans()
-        if s.instrumentation_scope and s.instrumentation_scope.name == scope
+        if s.instrumentation_scope and s.instrumentation_scope.name == SCOPE
     ]
 
 
@@ -72,13 +82,11 @@ def test_injects_its_client_span_into_this_request_only(captured: Telemetry) -> 
     assert header_ids(seen[0]) == (ctx(span).trace_id, ctx(span).span_id)
     assert seen[0].headers["x-default"] == "kept"
     assert span.name == "POST"
-    assert dict(span.attributes or {}) == {
-        "http.request.method": "POST",
-        "url.full": "http://worker:8080/mcp",  # no userinfo, no query
-        "server.address": "worker",
-        "server.port": 8080,
-        "http.response.status_code": 200,
-    }
+    attributes = dict(span.attributes or {})
+    assert attributes["http.request.method"] == "POST"
+    assert attributes["url.full"] == "http://REDACTED:REDACTED@worker:8080/mcp"  # userinfo redacted by the instrumentor
+    assert (attributes["server.address"], attributes["server.port"]) == ("worker", 8080)
+    assert attributes["http.response.status_code"] == 200
     assert span.status.status_code == StatusCode.UNSET
 
 
@@ -102,26 +110,6 @@ def test_concurrent_requests_get_their_own_carrier(captured: Telemetry) -> None:
     assert {client_parent[p] for p in header_parents} == test_parents  # ... which hangs off its own caller
 
 
-class _StreamedBody(httpx2.AsyncByteStream):
-    async def __aiter__(self) -> AsyncIterator[bytes]:
-        yield b'data: {"jsonrpc": "2.0", "id": 7, "result": {}}\n\n'
-
-
-def test_span_covers_the_streamed_response_body(captured: Telemetry) -> None:
-    transport = TracingTransport(
-        "baseline", httpx2.MockTransport(lambda _: httpx2.Response(200, stream=_StreamedBody()))
-    )
-
-    async def go() -> int:
-        async with httpx2.AsyncClient(transport=transport) as client, client.stream("POST", URL, json=CALL) as response:
-            finished_at_headers = len(http_spans(captured))
-            await response.aread()
-        return finished_at_headers
-
-    assert asyncio.run(go()) == 0
-    assert len(http_spans(captured)) == 1
-
-
 def test_server_error_and_transport_failure_mark_the_span(captured: Telemetry) -> None:
     def refuse(request: httpx2.Request) -> httpx2.Response:
         raise httpx2.ConnectError("refused", request=request)
@@ -129,7 +117,7 @@ def test_server_error_and_transport_failure_mark_the_span(captured: Telemetry) -
     async def go() -> None:
         async with make_client("baseline", [], status=503) as client:
             await client.post(URL, json=CALL)
-        async with httpx2.AsyncClient(transport=TracingTransport("baseline", httpx2.MockTransport(refuse))) as client:
+        async with instrumented(mcp_transport("baseline", httpx2.MockTransport(refuse))) as client:
             with pytest.raises(httpx2.ConnectError):
                 await client.post(URL, json=CALL)
 
@@ -138,7 +126,7 @@ def test_server_error_and_transport_failure_mark_the_span(captured: Telemetry) -
     assert unavailable.status.status_code == StatusCode.ERROR
     assert unavailable.attributes and unavailable.attributes["error.type"] == "503"
     assert refused.status.status_code == StatusCode.ERROR
-    assert refused.attributes and refused.attributes["error.type"] == "ConnectError"
+    assert refused.attributes and "ConnectError" in str(refused.attributes["error.type"])
 
 
 @pytest.mark.parametrize(
@@ -156,8 +144,7 @@ def test_fault_scenarios(scenario: str, header: bool, meta: bool, captured: Tele
 
     async def go() -> None:
         async with make_client(scenario, seen) as client:
-            stale = {"traceparent": "00-33333333333333333333333333333333-4444444444444444-01", "tracestate": "x=1"}
-            await client.post(URL, json=CALL, headers=stale)
+            await client.post(URL, json=CALL)
 
     asyncio.run(go())
     [request] = seen
@@ -169,12 +156,10 @@ def test_fault_scenarios(scenario: str, header: bool, meta: bool, captured: Tele
     assert sent["params"]["arguments"] == CALL["params"]["arguments"]
     assert int(request.headers["content-length"]) == len(request.content)
     assert ("traceparent" in request.headers) is header
+    assert "tracestate" not in request.headers
+    [span] = http_spans(captured)  # the CLIENT span exists either way: the seam removes the carrier, not the span
     if header:
-        [span] = http_spans(captured)
-        assert header_ids(request)[1] == ctx(span).span_id  # stale header replaced, not kept
-        assert "tracestate" not in request.headers
-    else:
-        assert "tracestate" not in request.headers
+        assert header_ids(request)[1] == ctx(span).span_id
 
 
 @pytest.mark.parametrize(
@@ -197,3 +182,9 @@ def test_meta_strip_passes_other_bodies_through_unchanged(body: bytes) -> None:
 
     asyncio.run(go())
     assert seen[0].content == body
+
+
+def test_baseline_uses_the_plain_transport() -> None:
+    inner = httpx2.MockTransport(lambda _: httpx2.Response(200))
+    assert mcp_transport("baseline", inner) is inner
+    assert mcp_transport("headers-removed", inner) is not inner

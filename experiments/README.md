@@ -11,7 +11,7 @@ results, and the verdict. Raw OTLP evidence stays in the git-ignored `evidence/e
 
 | Experiment | Fault (one variable) | What broke (failing check → evidence) | Repair → rerun |
 |---|---|---|---|
-| `headers-removed` | httpx2 hook skips the `traceparent` header on `POST /mcp` | `api-http-client->worker-http-server`: the .NET `POST /mcp/` span roots a **new trace**; the MCP operation stays in the browser trace via `_meta` and links across | restore header → all checks pass |
+| `headers-removed` | fault seam strips the `traceparent` header the httpx2 instrumentor injected on `POST /mcp` | `api-http-client->worker-http-server`: the .NET `POST /mcp/` span roots a **new trace**; the MCP operation stays in the browser trace via `_meta` and links across | restore header → all checks pass |
 | `meta-removed` | only `traceparent`/`tracestate` removed from `params._meta` | `mcp-message-parent`: MCP op's parent becomes `POST /mcp/` (HTTP fallback). Same trace id end to end — a surviving carrier, as predicted | restore `_meta` → pass |
 | `both-removed` | both carriers | `required-spans`: every .NET category found in **one other trace** (propagation loss) | restore both → pass |
 | `context-detached` | shipping branch created under `ExecutionContext.SuppressFlow()` | `required-spans`/`io-under-tool`: shipping CLIENT span (and the stub's server span) in another trace; SQL branch unaffected | launch under tool context → pass |

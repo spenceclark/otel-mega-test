@@ -1,6 +1,7 @@
 """Session-wide in-memory telemetry (never OTLP) and an in-process MCP server standing in for the .NET worker."""
 
 import json
+import os
 import socket
 import threading
 import time
@@ -20,6 +21,10 @@ from starlette.types import Message, Receive, Scope, Send
 
 from api import telemetry
 from api.models import AvailabilityReport, DestinationZone, ProductCode, ShippingQuote
+
+# Same as compose: stable HTTP semantic-convention names from the FastAPI and httpx2 instrumentors. Read once, at
+# the first instrumentation, so it must be set before any test instruments anything.
+os.environ.setdefault("OTEL_SEMCONV_STABILITY_OPT_IN", "http")
 
 CANARIES = ("CANARY-PROMPT-91c4", "CANARY-COMPLETION-3d7a", "CANARY-SHIPREF-5b1e", "CANARY-HEADER-e620")
 

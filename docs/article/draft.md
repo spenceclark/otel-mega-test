@@ -117,7 +117,7 @@ api            ├ chat claude-haiku-5-5                  1127 ms   model call 1
 api            │ └ anthropic.messages.create            1107 ms   Anthropic Python SDK's own span
 api            ├ execute_tool build_availability_report 3899 ms
 api            │ └ MCP send tools/call build_avail…     3849 ms   mcp SDK — params._meta parent
-api            │   ├ POST                               3848 ms   httpx2 hook — traceparent header
+api            │   ├ POST                               3848 ms   httpx2 HTTP client — traceparent header
 worker         │   │ └ POST /mcp/                       3847 ms   ASP.NET Core
 worker         │   └ tools/call build_availability_report 3844 ms MCP C# SDK (link → POST /mcp/)
 worker         │     └ invoke_agent availability-analyst 3729 ms  MAF
@@ -155,15 +155,21 @@ depends on whether the model is real.
 |---|---|---|---|---|
 | click → fetch | app (`ui.ask`) | fetch instrumentation | `traceparent` header | FastAPI instrumentation |
 | agent → MCP message | `mcp` SDK (`MCP send …`) | `mcp` SDK | `params._meta.traceparent` | MCP C# SDK |
-| MCP → HTTP | **our ~100-line httpx2 hook** | the hook | `traceparent` header | ASP.NET Core |
+| MCP → HTTP | `HTTPX2ClientInstrumentor` (applied by us) | the instrumentor | `traceparent` header | ASP.NET Core |
 | tool → SQL ∥ HTTP | Npgsql, HttpClient | — | `ExecutionContext` | — |
 | .NET → stub | HttpClient | HttpClient instrumentation | header | FastAPI |
 
-The surprise in the middle row: the MCP Python stack now runs on **httpx2**, and there is no OpenTelemetry
-instrumentor for it. Out of the box, nothing creates the Python HTTP client span and nothing puts a `traceparent`
-header on `POST /mcp`. Installing the familiar `opentelemetry-instrumentation-httpx` would have done nothing at
-all — it patches a library the MCP client no longer uses. We closed the gap with one transport wrapper with a
-written removal condition ([ADR 0001](../decisions/0001-httpx2-transport-hook.md)).
+The surprise in the middle row: the MCP Python stack now runs on **httpx2**, a fork of httpx, and nothing
+instruments it unless you ask. Out of the box, nothing creates the Python HTTP client span and nothing puts a
+`traceparent` header on `POST /mcp`. Our first answer was wrong in an instructive way. We looked for
+`opentelemetry-instrumentation-httpx2` and found an empty placeholder on PyPI, concluded no instrumentor existed, and
+wrote a ~100-line transport wrapper. The real one had shipped a week earlier, inside the *existing*
+`opentelemetry-instrumentation-httpx` package: `HTTPX2ClientInstrumentor`. Swapping it in passed every check the
+wrapper did, with three visible differences. Its HTTP attribute names follow `OTEL_SEMCONV_STABILITY_OPT_IN` (the
+old names by default). It keeps the URL's query string, redacting only userinfo. And its span ends when the
+response headers arrive. MCP Streamable HTTP delivers the tool result in the streamed body, so the Python `POST` now
+looks shorter than the .NET work beneath it. ([ADR 0001](../decisions/0001-httpx2-transport-hook.md) records the
+detour.)
 
 ## 5. The MCP surprise: two carriers, two parents
 
@@ -224,7 +230,7 @@ this project use ids only. The one way we found to *lose* a branch was to create
 trace while the SQL branch stayed put. `ConfigureAwait(false)` alone does no such thing.
 
 The other kind of concurrency is between requests. Everything below the browser is shared: one FastAPI process,
-one long-lived Pydantic AI MCP client with one httpx2 client and transport hook, one .NET worker with one Npgsql
+one long-lived Pydantic AI MCP client with one instrumented httpx2 client, one .NET worker with one Npgsql
 pool and one `HttpClient`. If any of them kept trace context in shared state — a `traceparent` stored on a
 client's default headers at startup is the classic mistake — later requests would become children of an earlier
 one.
@@ -243,7 +249,7 @@ has the same 12 log records. Three have 23 spans and two have 22: the difference
 which appears only when a request has to open a new pooled connection.
 
 Nothing here needed special handling. Every carrier is built per request from the span that is current at that
-moment: the httpx2 hook builds a fresh header carrier for each request, the mcp SDK injects `_meta` per message,
+moment: the httpx2 instrumentor injects a fresh header carrier for each request, the mcp SDK injects `_meta` per message,
 and .NET flows `ExecutionContext` per request. The long-lived client only carries connections.
 
 **The stress version (automated, scripted models).** Playwright opens twenty browser contexts and submits all
@@ -344,8 +350,8 @@ off right after that click.
 
 ## 9. Results and limits
 
-Continuity held across every boundary of a real click, but only after we wrote the instrumentation for the one
-boundary the ecosystem does not yet cover. One click is one trace: 23 spans, four services, every parent correct,
+Continuity held across every boundary of a real click, but only after we instrumented the one boundary that
+nothing instruments by default: the MCP client's httpx2 transport. One click is one trace: 23 spans, four services, every parent correct,
 the two I/O branches overlapping by 325 ms, and five simultaneous clicks staying five separate traces. Live models
 added things scripted ones never showed: the Anthropic Python SDK traced itself by default (a second span under each
 Pydantic AI model call, carrying account ids, now switched off), and a model can decide to call a tool twice at
@@ -384,7 +390,7 @@ The laboratory, deterministic and offline:
 
 | Hypothesis | Observation | Explanation | Fix |
 |---|---|---|---|
-| MCP keeps the trace across Python → .NET | yes for the message, **no HTTP header** | MCP client moved to httpx2; no instrumentor exists | one transport hook (ADR 0001) |
+| MCP keeps the trace across Python → .NET | yes for the message, **no HTTP header** by default | MCP client moved to httpx2; its instrumentor lives in the httpx package, not the `-httpx2` placeholder | `HTTPX2ClientInstrumentor.instrument_client` |
 | One carrier is enough | `_meta`-only keeps the logical chain; header-only keeps the trace but re-parents | message-first SDK design, HTTP fallback | keep both |
 | `await` keeps browser context | never, in any recorded run | zone.js cannot patch native async/await | start fetch synchronously, re-enter explicitly |
 | `Task.WhenAll` branches stay parented | yes, unless flow is suppressed | `ExecutionContext` flows into tasks | none needed |

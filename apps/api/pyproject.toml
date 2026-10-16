@@ -16,6 +16,8 @@ dependencies = [
     "opentelemetry-sdk==1.45.1",
     "opentelemetry-exporter-otlp-proto-http==1.45.1",
     "opentelemetry-instrumentation-fastapi==0.66b1",
+    # HTTPX2ClientInstrumentor: HTTP CLIENT span + traceparent header on the MCP client's httpx2 transport
+    "opentelemetry-instrumentation-httpx==0.66b1",
     # replacement for the LoggingHandler deprecated in opentelemetry-sdk 1.45
     "opentelemetry-instrumentation-logging==0.66b1",
 ]
